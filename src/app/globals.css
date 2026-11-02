@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+/* A quiet gray scale (page, hairlines, three text levels), light by default
+   and dark when the system asks for it */
+:root {
+  --background: #fcfcfc;
+  --line: #e4e4e4;
+  --faint: #8d8d8d;
+  --muted: #6f6f6f;
+  --foreground: #202020;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #111111;
+    --line: #2a2a2a;
+    --faint: #7b7b7b;
+    --muted: #a8a8a8;
+    --foreground: #eeeeee;
+    color-scheme: dark;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-faint: var(--faint);
+  --color-muted: var(--muted);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --animate-fade-in: fade-in 1.2s ease-out both;
+  --animate-rise: rise 0.6s cubic-bezier(0.23, 1, 0.32, 1) var(--delay, 0ms) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+      filter: blur(5px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      filter: none;
+    }
+  }
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}
+
+@utility link {
+  color: var(--foreground);
+  font-weight: 500;
+  text-decoration-line: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: transparent;
+  transition: text-decoration-color 0.2s ease;
+
+  @media (hover: hover) {
+    &:hover {
+      text-decoration-color: var(--faint);
+    }
+  }
+  &:focus-visible {
+    text-decoration-color: var(--faint);
+  }
+}
+
+/* Blocks inside the layout grid's content (see Column.tsx) span all its
+   columns, up to a comfortable reading width. This has to live in a layer
+   below Tailwind's utilities: unlayered CSS beats every layered rule whatever
+   its specificity, and then a utility like col-span-4 could never override it */
+@layer components {
+  .grid-content > * {
+    grid-column: 1 / -1;
+    max-width: 600px;
+    min-width: 0;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans), system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.625;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--foreground) 14%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in,
+  .animate-rise {
+    animation: none;
+  }
+}
