@@ -35,7 +35,8 @@ export default function Column({ children, guides = false }: ColumnProps) {
           ))}
         </div>
       )}
-      <main className={`relative w-full py-12 sm:py-24 ${GRID}`}>
+      {/* Fills the screen's height with its content in the middle of it */}
+      <main className={`relative w-full flex-1 content-center py-12 sm:py-24 ${GRID}`}>
         <div className={PLACEMENT}>{children}</div>
       </main>
     </>
