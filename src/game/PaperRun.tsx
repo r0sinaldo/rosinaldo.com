@@ -252,12 +252,9 @@ export default function PaperRun() {
       const pad = (n: number) => String(n).padStart(5, "0");
       context.fillText(`HI ${pad(game.best)}   ${pad(score())}`, width, 8 / SCALE);
 
-      const message =
-        game.state === "idle"
-          ? "Press space or tap to play"
-          : game.state === "over" && game.time - game.cut.time > 0.4
-            ? "Snipped. Press space or tap to go again"
-            : "";
+      // After a run, the strip and two quiet lines say what happened (see
+      // below)
+      const message = game.state === "idle" ? "Press space or tap to play" : "";
       if (message) {
         context.font = `${13 / SCALE}px ${colours.font}`;
         context.textAlign = "center";
@@ -335,14 +332,19 @@ export default function PaperRun() {
       frame = requestAnimationFrame(loop);
     };
 
+    // Links and buttons keep their own keys and taps
+    const isControl = (target: EventTarget | null) =>
+      target instanceof Element && !!target.closest("a, button, input, textarea, select, [contenteditable]");
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== " " && event.key !== "ArrowUp") return;
-      const target = event.target as HTMLElement;
-      if (target.isContentEditable || /^(INPUT|TEXTAREA|SELECT|BUTTON|A)$/.test(target.tagName)) return;
+      if ((event.key !== " " && event.key !== "ArrowUp") || isControl(event.target)) return;
       event.preventDefault();
       if (!event.repeat) jump();
     };
+    // Mid-run, a tap anywhere on the page jumps, so a thumb need not find the
+    // strip; to start, or start again, it has to be on the game itself
     const onPointerDown = (event: PointerEvent) => {
+      if (event.button !== 0 || isControl(event.target)) return;
+      if (game.state !== "running" && !element.contains(event.target as Node)) return;
       event.preventDefault();
       jump();
     };
@@ -368,15 +370,18 @@ export default function PaperRun() {
       };
     }
     window.addEventListener("keydown", onKeyDown);
-    element.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("pointerdown", onPointerDown);
     document.addEventListener("visibilitychange", onVisibility);
     frame = requestAnimationFrame(loop);
     return () => {
+      // The page stays mounted, hidden, when navigated away from, and the game
+      // starts over when it comes back: so must what is shown around it
+      setSnipped(false);
       cancelAnimationFrame(frame);
       observer.disconnect();
       scheme.removeEventListener("change", onScheme);
       window.removeEventListener("keydown", onKeyDown);
-      element.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("pointerdown", onPointerDown);
       document.removeEventListener("visibilitychange", onVisibility);
     };
   }, [reducedMotion]);
@@ -417,18 +422,26 @@ export default function PaperRun() {
           {sound ? "Sound on" : "Sound off"}
         </button>
       )}
-      {/* The ideas that did make it, under the one that didn't */}
+      {/* After a run: what the strip is, above it; and, under the line the
+          game runs on, as a footer, where the ideas that did make it are.
+          Taps on the words go through to the game, so they start again */}
+      <p
+        className="pointer-events-none absolute inset-x-0 text-center text-xs text-muted transition-opacity duration-300"
+        style={{ top: 40, opacity: snipped ? 1 : 0, transitionDelay: snipped ? "500ms" : "0ms" }}
+        aria-live="polite"
+      >
+        {snipped && "Some ideas don’t make it."}
+      </p>
       <p
         className="pointer-events-none absolute inset-x-0 text-center text-xs text-faint transition-opacity duration-300"
-        style={{ top: 50, opacity: snipped ? 1 : 0, transitionDelay: snipped ? "400ms" : "0ms" }}
-        aria-live="polite"
+        style={{ top: GROUND * SCALE + 9, opacity: snipped ? 1 : 0, transitionDelay: snipped ? "800ms" : "0ms" }}
       >
         {snipped && (
           <>
-            Some ideas don&apos;t make it. The ones that did are in the{" "}
+            The ones that did are in the{" "}
             <Link
               href="/lab"
-              className="pointer-events-auto text-muted underline decoration-[color-mix(in_srgb,currentColor_35%,transparent)] underline-offset-2 transition-colors hover:text-foreground"
+              className="pointer-events-auto underline decoration-[color-mix(in_srgb,currentColor_35%,transparent)] underline-offset-2 transition-colors hover:text-foreground"
             >
               Lab →
             </Link>
