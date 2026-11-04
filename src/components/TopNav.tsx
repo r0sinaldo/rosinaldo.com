@@ -6,6 +6,7 @@ import { MARK } from "@/lib/Mark";
 import { riseDelay } from "@/lib/Rise";
 import { SITE_NAME } from "@/lib/Site";
 import { type Section, useActiveSection } from "@/lib/useActiveSection";
+import { useAddressFollows } from "@/lib/useAddressFollows";
 
 const STROKE = { fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" } as const;
 // The same empty list on every render, so nothing watching it starts over
@@ -34,18 +35,23 @@ export default function TopNav({ back, current, sections = NO_SECTIONS }: TopNav
   const [titleGone, setTitleGone] = useState(false);
   const [open, setOpen] = useState(false);
   const active = useActiveSection(sections);
+  useAddressFollows(active);
   // The list opens from the page's name in the bar, so it goes when that does
   const listed = open && titleGone;
 
   useEffect(() => {
     let frame = 0;
+    // Measured from the page column the bar starts at the top of, and from the
+    // bar's height, never from the bar's own place on screen: that moves with
+    // its entrance, and a page reloaded scrolled down is measured mid-entrance
     const update = () => {
       frame = 0;
-      const bar = nav.current?.getBoundingClientRect();
+      const bar = nav.current;
+      const column = bar?.parentElement?.getBoundingClientRect();
       const title = document.querySelector("h1")?.getBoundingClientRect();
-      if (!bar) return;
-      setStuck(window.scrollY > 0 && bar.top <= 0);
-      setTitleGone(!!title && title.bottom <= bar.bottom);
+      if (!bar || !column) return;
+      setStuck(column.top < 0);
+      setTitleGone(!!title && title.bottom <= bar.offsetHeight);
     };
     const schedule = () => {
       if (!frame) frame = requestAnimationFrame(update);
