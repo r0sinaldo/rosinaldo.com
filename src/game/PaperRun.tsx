@@ -50,8 +50,8 @@ function readBest() {
   }
 }
 
-// Browsers only let sound start from a key or a tap, so the audio is made, or
-// woken, in one: the tap that turns sound on, or the key or tap that starts a run
+// Browsers only let sound start from a key press, a mouse press or the end of a
+// tap (not the start of one), so the audio is made, or woken, in those
 function wake(audio: RefObject<AudioContext | null>) {
   audio.current ??= new AudioContext();
   audio.current.resume();
@@ -115,6 +115,8 @@ export default function PaperRun() {
       // The page's fall onto the line, and when it began
       fall: null as Fall | null,
       fell: 0,
+      // The sound of the page crumpling, yet to start
+      crumpleDue: false,
       // The ball: how high it is (negative, up), how fast it is rising or
       // falling, its squash on landing and how far it has turned
       y: 0,
@@ -139,9 +141,12 @@ export default function PaperRun() {
 
     const score = () => Math.floor((game.distance * SCALE) / 12);
 
-    // Sounds only when they are on
+    // Sounds only when they are on, and only once the audio is running: one
+    // made before that would wait for it, and come out late
     const play = (sound: (audio: AudioContext) => void) => {
-      if (!muted.current) sound(wake(audio));
+      if (muted.current) return;
+      const woken = wake(audio);
+      if (woken.state === "running") sound(woken);
     };
 
     // Where the page falls from and where the ball runs from, in the window's
@@ -174,7 +179,8 @@ export default function PaperRun() {
         next: width * 0.7,
         scissors: [],
       });
-      play((audio) => crumple(audio, fall.duration * CRUMPLED_AT));
+      game.crumpleDue = true;
+      if (!muted.current) wake(audio);
     };
 
     const jump = () => {
@@ -200,11 +206,21 @@ export default function PaperRun() {
 
     function step(dt: number) {
       game.time += dt;
-      if (game.state === "falling" && game.fall && game.time - game.fell >= game.fall.duration) {
-        game.state = "running";
-        // Landing with a squash
-        game.squash = 0.8;
-        play(land);
+      if (game.state === "falling" && game.fall) {
+        const fallen = game.time - game.fell;
+        if (game.crumpleDue && audio.current?.state === "running") {
+          // From wherever the fall has got to: on a phone, the audio is only
+          // allowed to start as the tap that started the fall ends
+          const left = game.fall.duration * CRUMPLED_AT - fallen;
+          game.crumpleDue = false;
+          if (left > 0) play((running) => crumple(running, left));
+        }
+        if (fallen >= game.fall.duration) {
+          game.state = "running";
+          // Landing with a squash
+          game.squash = 0.8;
+          play(land);
+        }
       }
       if (game.state !== "running") return;
       game.run += dt;
@@ -464,6 +480,10 @@ export default function PaperRun() {
       event.preventDefault();
       jump();
     };
+    // The end of a tap, any tap, is when a phone lets the audio start
+    const onTouchEnd = () => {
+      if (!muted.current) wake(audio);
+    };
     // Away from the tab, it stops where it is, and picks up from there
     const onVisibility = () => {
       cancelAnimationFrame(frame);
@@ -490,6 +510,7 @@ export default function PaperRun() {
     }
     window.addEventListener("keydown", onKeyDown);
     document.addEventListener("pointerdown", onPointerDown);
+    document.addEventListener("touchend", onTouchEnd, { passive: true });
     document.addEventListener("visibilitychange", onVisibility);
     frame = requestAnimationFrame(loop);
     return () => {
@@ -501,6 +522,7 @@ export default function PaperRun() {
       scheme.removeEventListener("change", onScheme);
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
+      document.removeEventListener("touchend", onTouchEnd);
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", fitAbove);
     };
