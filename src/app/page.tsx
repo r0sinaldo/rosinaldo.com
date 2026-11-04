@@ -14,6 +14,9 @@ export default function Home() {
     <>
       <Column guides>
         <header className="mb-8 animate-rise" style={riseDelay(0)}>
+          {/* Where the game's page waits, and falls from when a run starts
+              (drawn by PaperRun); pressing it starts a run too */}
+          <span data-paper aria-hidden className="mb-3 block h-9 w-7" />
           <h1 className="leading-snug font-medium">{SITE_FULL_NAME}</h1>
           <p className="leading-snug text-muted">{SITE_ROLE}</p>
         </header>

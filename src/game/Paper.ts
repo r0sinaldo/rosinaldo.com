@@ -2,11 +2,10 @@ import { MODEL } from "./Ball";
 import { easeInOut, easeOut, type Palette, SCALE } from "./World";
 
 // The page an idea was written on: flat before the run, crumpling into the
-// ball as it starts, and the strip of it that slips out when the ball is cut
+// ball as it falls (see Fall), and the strip of it that slips out when the
+// ball is cut
 
-// How long the page takes to crumple into a ball (s)
-export const CRUMPLE = 0.5;
-export const SHEET = { width: 20, height: 26 };
+const SHEET = { width: 20, height: 26 };
 // The lines of notebook paper
 const RULE = "rgb(120 160 220 / 0.45)";
 const MARGIN_RULE = "rgb(230 120 120 / 0.5)";
