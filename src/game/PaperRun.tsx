@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { type RefObject, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { drawBall } from "./Ball";
@@ -10,7 +10,7 @@ import { IDEAS } from "./Ideas";
 import { drawIdea, drawSheet, stripWidth } from "./Paper";
 import { pattern } from "./Patterns";
 import { drawScissors, type Scissors } from "./Scissors";
-import { flick, snip } from "./Sound";
+import { crumple, flick, land, snip } from "./Sound";
 import { BALL, easeInOut, GRAVITY, GROUND, HEIGHT, JUMP, NEXT_JUMP, palette, random, SCALE } from "./World";
 
 // A small game along the bottom of the home page. The ball is an idea I had
@@ -50,6 +50,14 @@ function readBest() {
   }
 }
 
+// Browsers only let sound start from a key or a tap, so the audio is made, or
+// woken, in one: the tap that turns sound on, or the key or tap that starts a run
+function wake(audio: RefObject<AudioContext | null>) {
+  audio.current ??= new AudioContext();
+  audio.current.resume();
+  return audio.current;
+}
+
 function saveBest(score: number) {
   try {
     localStorage.setItem(BEST, String(score));
@@ -75,10 +83,10 @@ export default function PaperRun() {
   const reducedMotion = useReducedMotion();
   // Whether the ball has just been cut, for the way to the Lab
   const [snipped, setSnipped] = useState(false);
-  // Off until asked for, on every visit
-  const [sound, setSound] = useState(false);
+  // On to start with, on every visit
+  const [sound, setSound] = useState(true);
   const audio = useRef<AudioContext | null>(null);
-  const muted = useRef(true);
+  const muted = useRef(false);
 
   useEffect(() => {
     muted.current = !sound;
@@ -87,11 +95,7 @@ export default function PaperRun() {
   const toggleSound = () => {
     const on = !sound;
     setSound(on);
-    // Made here, in the click, as browsers only let sound start from one
-    if (on) {
-      audio.current ??= new AudioContext();
-      audio.current.resume();
-    }
+    if (on) wake(audio);
   };
 
   useEffect(() => {
@@ -135,12 +139,9 @@ export default function PaperRun() {
 
     const score = () => Math.floor((game.distance * SCALE) / 12);
 
-    // Sounds only when they are on, and not before
+    // Sounds only when they are on
     const play = (sound: (audio: AudioContext) => void) => {
-      if (muted.current) return;
-      audio.current ??= new AudioContext();
-      audio.current.resume();
-      sound(audio.current);
+      if (!muted.current) sound(wake(audio));
     };
 
     // Where the page falls from and where the ball runs from, in the window's
@@ -158,9 +159,10 @@ export default function PaperRun() {
     // and the run starts as it lands
     const start = () => {
       setSnipped(false);
+      const fall = planFall(home(), landing());
       Object.assign(game, {
         state: "falling",
-        fall: planFall(home(), landing()),
+        fall,
         fell: game.time,
         y: 0,
         velocity: 0,
@@ -172,6 +174,7 @@ export default function PaperRun() {
         next: width * 0.7,
         scissors: [],
       });
+      play((audio) => crumple(audio, fall.duration * CRUMPLED_AT));
     };
 
     const jump = () => {
@@ -201,6 +204,7 @@ export default function PaperRun() {
         game.state = "running";
         // Landing with a squash
         game.squash = 0.8;
+        play(land);
       }
       if (game.state !== "running") return;
       game.run += dt;
@@ -319,7 +323,8 @@ export default function PaperRun() {
         context.fillStyle = colours.muted;
         // A slow, soft pulse, so the invitation is noticed without nagging
         context.globalAlpha = 0.4 + 0.6 * (0.5 + 0.5 * Math.cos((game.time * 2 * Math.PI) / 1.8));
-        context.fillText(message, width / 2, 30 / SCALE);
+        // Centred in the space between the scores and the still of a run
+        context.fillText(message, width / 2, 49 / SCALE);
         context.globalAlpha = 1;
       }
     }

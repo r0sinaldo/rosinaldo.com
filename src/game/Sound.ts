@@ -78,3 +78,47 @@ export function snip(audio: AudioContext) {
   tear.connect(band).connect(tearGain).connect(audio.destination);
   tear.start(now + 0.03);
 }
+
+// The page crumpling as it falls, `length` seconds of it: many small crackles
+// of noise, each its own loudness, close together as paper's are
+export function crumple(audio: AudioContext, length: number) {
+  const now = audio.currentTime;
+  const source = noise(audio, length + 0.05);
+  const band = audio.createBiquadFilter();
+  band.type = "bandpass";
+  band.Q.value = 0.7;
+  band.frequency.value = 2800;
+  const crackles = audio.createGain();
+  crackles.gain.setValueAtTime(0, now);
+  for (let t = 0; t < length; t += 0.012 + Math.random() * 0.03) {
+    crackles.gain.setValueAtTime(0.04 + Math.random() * 0.1, now + t);
+    crackles.gain.setTargetAtTime(0.002, now + t, 0.006);
+  }
+  source.connect(band).connect(crackles).connect(audio.destination);
+  source.start(now);
+}
+
+// The ball landing on the line: a soft, low thud, with a little dull noise in
+// it, as of paper
+export function land(audio: AudioContext) {
+  const now = audio.currentTime;
+  const tone = audio.createOscillator();
+  tone.frequency.setValueAtTime(150, now);
+  tone.frequency.exponentialRampToValueAtTime(60, now + 0.1);
+  const thud = audio.createGain();
+  thud.gain.setValueAtTime(0.12, now);
+  thud.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+  tone.connect(thud).connect(audio.destination);
+  tone.start(now);
+  tone.stop(now + 0.13);
+
+  const dull = noise(audio, 0.06);
+  const low = audio.createBiquadFilter();
+  low.type = "lowpass";
+  low.frequency.value = 900;
+  const dullGain = audio.createGain();
+  dullGain.gain.setValueAtTime(0.08, now);
+  dullGain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+  dull.connect(low).connect(dullGain).connect(audio.destination);
+  dull.start(now);
+}
