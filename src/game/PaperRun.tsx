@@ -32,6 +32,9 @@ const BEST = "paper-run-best";
 // the 24px of page under it), less half its own 16px height
 const FOOTER = GROUND * SCALE + (HEIGHT * SCALE - GROUND * SCALE + 24) / 2 - 8;
 
+// The canvas the page waits in, around the place marked for it (px): room
+// for the page as it sways
+const WAITING = 48;
 // How much of the fall the page takes to crumple into the ball, and how fast it
 // turns over as it falls (rad/s)
 const CRUMPLED_AT = 0.6;
@@ -55,16 +58,20 @@ function saveBest(score: number) {
 
 export default function PaperRun() {
   const canvas = useRef<HTMLCanvasElement>(null);
-  // Over the whole window, for the page above the name and its fall. Put in
-  // the body, as fixed inside the game it would be fixed to the game: the
-  // game's entrance leaves a transform on what holds it. Only in the browser,
-  // where there is a body to put it in
-  const sky = useRef<HTMLCanvasElement>(null);
-  const inBrowser = useSyncExternalStore(
+  // The place marked for the page on the home page ([data-paper], above the
+  // name). The page waits there, drawn inside it so it moves with the page
+  // whatever the page does (an iPhone's bounce at the top included), and falls
+  // from there
+  const place = useSyncExternalStore(
     () => () => {},
-    () => true,
-    () => false,
+    () => document.querySelector<HTMLElement>("[data-paper]"),
+    () => null,
   );
+  const waitingCanvas = useRef<HTMLCanvasElement>(null);
+  // Over the whole window, for the fall. Put in the body, as fixed inside the
+  // game it would be fixed to the game: the game's entrance leaves a transform
+  // on what holds it
+  const sky = useRef<HTMLCanvasElement>(null);
   const reducedMotion = useReducedMotion();
   // Whether the ball has just been cut, for the way to the Lab
   const [snipped, setSnipped] = useState(false);
@@ -90,9 +97,11 @@ export default function PaperRun() {
   useEffect(() => {
     const element = canvas.current;
     const overlay = sky.current;
-    if (!element || !overlay) return;
+    const sheet = waitingCanvas.current;
+    if (!element || !overlay || !sheet || !place) return;
     const context = element.getContext("2d")!;
     const above = overlay.getContext("2d")!;
+    const waiting = sheet.getContext("2d")!;
     let colours = palette();
     let width = 0;
 
@@ -134,13 +143,11 @@ export default function PaperRun() {
       sound(audio.current);
     };
 
-    // The page waits on the home page where it marks a place for it
-    // ([data-paper], above the name), and lands where the ball runs from; both
-    // in the window's pixels, as the fall is drawn
+    // Where the page falls from and where the ball runs from, in the window's
+    // pixels, as the fall is drawn
     const home = () => {
-      const place = document.querySelector("[data-paper]")?.getBoundingClientRect();
-      const { x, y } = landing();
-      return place ? { x: place.left + place.width / 2, y: place.top + place.height / 2 } : { x, y: y - 80 };
+      const { left, top, width, height } = place.getBoundingClientRect();
+      return { x: left + width / 2, y: top + height / 2 };
     };
     const landing = () => {
       const strip = element.getBoundingClientRect();
@@ -267,8 +274,8 @@ export default function PaperRun() {
 
       // Before a run, a faint still of it, going as the page falls in
       const coming = game.state === "falling" && game.fall ? (game.time - game.fell) / game.fall.duration : 0;
-      const waiting = game.state === "idle" ? 1 : game.state === "falling" ? 1 - coming : 0;
-      if (waiting > 0) drawPreview(waiting);
+      const still = game.state === "idle" ? 1 : game.state === "falling" ? 1 - coming : 0;
+      if (still > 0) drawPreview(still);
 
       for (const s of game.scissors) {
         // Slowly, and only part way: quick snipping strobes as it passes
@@ -333,37 +340,46 @@ export default function PaperRun() {
       context.restore();
     }
 
-    // Above the game, over the whole window: the page waiting above the name,
-    // swaying a little (and back there, fading in, a while after a run ends);
-    // or the page falling, crumpling into the ball as it goes
+    // Above the game: the page waiting above the name, swaying a little (and
+    // back there, fading in, a while after a run ends); or, over the whole
+    // window, the page falling, crumpling into the ball as it goes
     function drawAbove() {
       const dpr = Math.max(1, Math.round(window.devicePixelRatio));
-      above.setTransform(1, 0, 0, 1, 0, 0);
-      above.clearRect(0, 0, above.canvas.width, above.canvas.height);
-      above.setTransform(dpr * SCALE, 0, 0, dpr * SCALE, 0, 0);
       const sway = 0.08 + Math.sin(game.time * 1.4) * 0.03;
-      const page = (at: { x: number; y: number }, crumpled: number, turn: number, alpha: number) => {
-        above.save();
-        above.globalAlpha = alpha;
-        above.translate(at.x / SCALE, at.y / SCALE);
-        above.rotate(turn);
-        drawSheet(above, crumpled, colours);
+      const page = (
+        target: CanvasRenderingContext2D,
+        at: { x: number; y: number },
+        crumpled: number,
+        turn: number,
+        alpha: number,
+      ) => {
+        target.save();
+        target.globalAlpha = alpha;
+        target.translate(at.x / SCALE, at.y / SCALE);
+        target.rotate(turn);
+        drawSheet(target, crumpled, colours);
         // The ball taking over as the last folds go in
         if (crumpled > 0.7) {
-          above.globalAlpha = (alpha * (crumpled - 0.7)) / 0.3;
-          drawBall(above, 0, colours);
+          target.globalAlpha = (alpha * (crumpled - 0.7)) / 0.3;
+          drawBall(target, 0, colours);
         }
-        above.restore();
+        target.restore();
       };
-      if (game.state === "idle") page(home(), 0, sway, 1);
+      for (const target of [above, waiting]) {
+        target.setTransform(1, 0, 0, 1, 0, 0);
+        target.clearRect(0, 0, target.canvas.width, target.canvas.height);
+        target.setTransform(dpr * SCALE, 0, 0, dpr * SCALE, 0, 0);
+      }
+      const centre = { x: WAITING / 2, y: WAITING / 2 };
+      if (game.state === "idle") page(waiting, centre, 0, sway, 1);
       else if (game.state === "over") {
         const since = game.time - game.cut.time - 0.9;
-        if (since > 0) page(home(), 0, sway, Math.min(since / 0.5, 1));
+        if (since > 0) page(waiting, centre, 0, sway, Math.min(since / 0.5, 1));
       } else if (game.state === "falling" && game.fall) {
         const t = Math.min(game.time - game.fell, game.fall.duration);
         const crumpled = Math.min(t / (game.fall.duration * CRUMPLED_AT), 1);
         const turn = (1 - easeInOut(crumpled)) * sway + t * TUMBLE * Math.sign(game.fall.across || 1);
-        page(fallAt(game.fall, t), crumpled, turn, 1);
+        page(above, fallAt(game.fall, t), crumpled, turn, 1);
       }
     }
 
@@ -399,6 +415,7 @@ export default function PaperRun() {
       const dpr = Math.max(1, Math.round(window.devicePixelRatio));
       above.canvas.width = Math.round(window.innerWidth * dpr);
       above.canvas.height = Math.round(window.innerHeight * dpr);
+      waiting.canvas.width = waiting.canvas.height = WAITING * dpr;
       draw();
     };
 
@@ -409,7 +426,7 @@ export default function PaperRun() {
       element.height = Math.round(HEIGHT * SCALE * scale);
       context.setTransform(scale * SCALE, 0, 0, scale * SCALE, 0, 0);
       // Without motion, the game stays as it waits: the page above the name,
-      // and the still of a run under it
+      // and the still of a run
       draw();
     };
 
@@ -437,7 +454,7 @@ export default function PaperRun() {
     const onPointerDown = (event: PointerEvent) => {
       if (event.button !== 0 || isControl(event.target)) return;
       const target = event.target as Node;
-      const onGame = element.contains(target) || !!document.querySelector("[data-paper]")?.contains(target);
+      const onGame = element.contains(target) || place.contains(target);
       if (game.state !== "running" && !onGame) return;
       event.preventDefault();
       jump();
@@ -460,14 +477,10 @@ export default function PaperRun() {
     window.addEventListener("resize", fitAbove);
     fitAbove();
     if (reducedMotion) {
-      // Nothing redraws it otherwise, and the page above the name has to move
-      // with the page as it scrolls
-      window.addEventListener("scroll", draw, { passive: true });
       return () => {
         observer.disconnect();
         scheme.removeEventListener("change", onScheme);
         window.removeEventListener("resize", fitAbove);
-        window.removeEventListener("scroll", draw);
       };
     }
     window.addEventListener("keydown", onKeyDown);
@@ -486,15 +499,26 @@ export default function PaperRun() {
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("resize", fitAbove);
     };
-  }, [reducedMotion, inBrowser]);
+  }, [reducedMotion, place]);
 
   return (
     <div className="relative">
-      {inBrowser &&
-        createPortal(
-          <canvas ref={sky} aria-hidden className="pointer-events-none fixed inset-0 z-20 size-full" />,
-          document.body,
-        )}
+      {place && (
+        <>
+          {createPortal(
+            <canvas ref={sky} aria-hidden className="pointer-events-none fixed inset-0 z-20 size-full" />,
+            document.body,
+          )}
+          {createPortal(
+            <canvas
+              ref={waitingCanvas}
+              className="pointer-events-none absolute top-1/2 left-1/2 -translate-1/2"
+              style={{ width: WAITING, height: WAITING }}
+            />,
+            place,
+          )}
+        </>
+      )}
       <canvas
         ref={canvas}
         role="img"
