@@ -1,10 +1,6 @@
 import { ImageResponse } from "next/og";
+import { MARK } from "@/lib/Mark";
 import { SITE_DESCRIPTION } from "@/lib/Site";
-
-// The R of the favicon (app/icon.svg), the same path, framed tight around the
-// letter so it sits exactly in the middle of the image
-const MARK_PATH =
-  "M8.5 7.43H17.6A5.29 5.29 0 0 1 17.6 18H12.6V25H8.5ZM12.6 10.93V14.5H17.12A1.79 1.79 0 0 0 17.12 10.93ZM14.2 15.2H18.6L23.7 25H19.3Z";
 
 export const alt = SITE_DESCRIPTION;
 export const size = { width: 1200, height: 630 };
@@ -23,8 +19,10 @@ export default function OpenGraphImage() {
         background: "#fcfcfc",
       }}
     >
-      <svg width={208} height={240} viewBox="8.5 7.43 15.2 17.57">
-        <path d={MARK_PATH} fill="#202020" />
+      {/* About a quarter of the height: previews are often cropped to a square
+          around the middle, and a larger mark crowds it */}
+      <svg width={132} height={152} viewBox={MARK.viewBox}>
+        <path d={MARK.path} fill="#202020" />
       </svg>
     </div>,
     size,

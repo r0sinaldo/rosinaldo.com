@@ -1,9 +1,10 @@
 @import "tailwindcss";
 
-/* A quiet gray scale (page, hairlines, three text levels), light by default
+/* A quiet gray scale (page, a raised surface, hairlines, three text levels), light by default
    and dark when the system asks for it */
 :root {
   --background: #fcfcfc;
+  --surface: #f3f3f3;
   --line: #e4e4e4;
   --faint: #8d8d8d;
   --muted: #6f6f6f;
@@ -14,6 +15,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --background: #111111;
+    --surface: #191919;
     --line: #2a2a2a;
     --faint: #7b7b7b;
     --muted: #a8a8a8;
@@ -24,12 +26,15 @@
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-faint: var(--faint);
   --color-muted: var(--muted);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-inter);
-  --animate-fade-in: fade-in 1.2s ease-out both;
   --animate-rise: rise 0.6s cubic-bezier(0.23, 1, 0.32, 1) var(--delay, 0ms) both;
+  /* A new label on a button settling in, and a check mark drawing itself */
+  --animate-label: label 0.25s cubic-bezier(0.23, 1, 0.32, 1) both;
+  --animate-draw: draw 0.35s cubic-bezier(0.65, 0, 0.35, 1) 0.08s both;
 
   @keyframes rise {
     from {
@@ -44,12 +49,17 @@
     }
   }
 
-  @keyframes fade-in {
+  @keyframes label {
     from {
       opacity: 0;
+      transform: translateY(4px);
+      filter: blur(2px);
     }
-    to {
-      opacity: 1;
+  }
+
+  @keyframes draw {
+    from {
+      stroke-dashoffset: 1;
     }
   }
 }
@@ -73,15 +83,80 @@
   }
 }
 
-/* Blocks inside the layout grid's content (see Column.tsx) span all its
-   columns, up to a comfortable reading width. This has to live in a layer
-   below Tailwind's utilities: unlayered CSS beats every layered rule whatever
-   its specificity, and then a utility like col-span-4 could never override it */
+/* Registered so it can be transitioned on its own: the lab's circular fill
+   grows only its radius, while its centre jumps to each new press */
+@property --hold-radius {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+
+/* The lab's skeletons (see experiments/skeleton). One light sweeps every
+   bone of a placeholder: the post animates where it is (--shimmer, inherited)
+   and each bone shifts its gradient by where it starts (--x), so the light
+   reads as one pass over the whole placeholder. --reveal is how much of a
+   line Ink has written */
+@property --shimmer {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: -160px;
+}
+
+@property --reveal {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
+}
+
+@keyframes shimmer {
+  0% {
+    --shimmer: -160px;
+  }
+  /* A pause between passes, so it breathes rather than strobes */
+  70%,
+  100% {
+    --shimmer: 440px;
+  }
+}
+
+/* The slow breath of Melt's placeholder */
+@keyframes breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
 @layer components {
+  /* Blocks inside the layout grid's content (see Column.tsx) span all its
+     columns, up to a comfortable reading width. This has to live in a layer
+     below Tailwind's utilities: unlayered CSS beats every layered rule
+     whatever its specificity, and then a utility like col-span-4 could never
+     override it */
   .grid-content > * {
     grid-column: 1 / -1;
     max-width: 600px;
     min-width: 0;
+  }
+
+  .bone {
+    background-color: color-mix(in srgb, var(--foreground) 7%, transparent);
+    background-image: linear-gradient(
+      100deg,
+      transparent,
+      color-mix(in srgb, var(--foreground) 6%, transparent),
+      transparent
+    );
+    background-size: 160px 100%;
+    background-repeat: no-repeat;
+    background-position-x: calc(var(--shimmer) - var(--x, 0px));
+  }
+
+  .shimmering {
+    animation: shimmer 1.8s ease-in-out infinite;
+  }
+
+  .breathing {
+    animation: breathe 2.2s ease-in-out infinite;
   }
 }
 
@@ -94,13 +169,20 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@media (prefers-reduced-motion: no-preference) {
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
 ::selection {
   background: color-mix(in srgb, var(--foreground) 14%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .animate-fade-in,
-  .animate-rise {
+  .animate-rise,
+  .shimmering,
+  .breathing {
     animation: none;
   }
 }

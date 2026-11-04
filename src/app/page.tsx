@@ -4,6 +4,7 @@ import { riseDelay } from "@/lib/Rise";
 import { CONTACT_EMAIL, SITE_FULL_NAME, SITE_ROLE } from "@/lib/Site";
 
 const LINKS: LinkItem[] = [
+  { label: "Lab", href: "/lab" },
   { label: CONTACT_EMAIL, href: `mailto:${CONTACT_EMAIL}`, external: true },
 ];
 
