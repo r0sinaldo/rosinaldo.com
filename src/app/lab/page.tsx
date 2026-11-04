@@ -6,7 +6,11 @@ import TopNav from "@/components/TopNav";
 import { riseDelay } from "@/lib/Rise";
 import { LAB_DESCRIPTION, LABS } from "./Labs";
 
-export const metadata: Metadata = { title: "Lab", description: LAB_DESCRIPTION };
+export const metadata: Metadata = {
+  title: "Lab",
+  description: LAB_DESCRIPTION,
+  alternates: { canonical: "/lab" },
+};
 
 export default function Lab() {
   return (

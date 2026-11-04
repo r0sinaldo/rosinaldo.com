@@ -13,7 +13,9 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const lab = LABS.find((l) => l.slug === slug);
-  return lab ? { title: lab.title, description: lab.description } : {};
+  return lab
+    ? { title: lab.pageTitle, description: lab.description, alternates: { canonical: `/lab/${lab.slug}` } }
+    : {};
 }
 
 // Reading params suspends; inside a boundary, navigating between pages stays

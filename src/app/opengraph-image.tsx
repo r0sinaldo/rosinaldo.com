@@ -1,8 +1,9 @@
 import { ImageResponse } from "next/og";
 import { MARK } from "@/lib/Mark";
-import { SITE_DESCRIPTION } from "@/lib/Site";
+import { SITE_FULL_NAME } from "@/lib/Site";
 
-export const alt = SITE_DESCRIPTION;
+// What the picture shows, as it stands for every page
+export const alt = `The letter R, the mark of ${SITE_FULL_NAME}`;
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 

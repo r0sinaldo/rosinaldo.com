@@ -1,8 +1,11 @@
+import type { Metadata } from "next";
 import Column, { GRID } from "@/components/Column";
 import LinkList, { type LinkItem } from "@/components/LinkList";
 import PaperRun from "@/game/PaperRun";
 import { riseDelay } from "@/lib/Rise";
 import { CONTACT_EMAIL, SITE_FULL_NAME, SITE_ROLE } from "@/lib/Site";
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 const LINKS: LinkItem[] = [
   { label: "Lab", href: "/lab" },

@@ -15,6 +15,9 @@ type Experiment = {
 export type Lab = {
   slug: string;
   title: string;
+  // The page's title for search engines and link previews, in the words people
+  // would look for it by
+  pageTitle: string;
   // One sentence: shown under the title, and as the page's description for
   // search engines and link previews
   description: string;
@@ -27,7 +30,8 @@ export const LABS: Lab[] = [
   {
     slug: "hold-to-confirm",
     title: "Hold to confirm",
-    description: "Eleven takes on a button you have to mean.",
+    pageTitle: "Hold to confirm button ideas",
+    description: "Interface ideas for a button you press and hold to confirm.",
     experiments: [
       {
         id: "classic",
@@ -111,7 +115,8 @@ export const LABS: Lab[] = [
   {
     slug: "skeleton",
     title: "Skeleton",
-    description: "Eleven ways for a placeholder to give way to content.",
+    pageTitle: "Skeleton loading ideas",
+    description: "Interface ideas for a placeholder giving way to content.",
     experiments: [
       {
         id: "frost",
