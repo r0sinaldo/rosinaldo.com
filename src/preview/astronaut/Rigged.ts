@@ -91,7 +91,7 @@ function paintMaps(material: THREE.MeshStandardMaterial) {
     const t = new THREE.CanvasTexture(c);
     t.flipY = false;
     t.colorSpace = colour ? THREE.SRGBColorSpace : THREE.NoColorSpace;
-    t.anisotropy = 4;
+    t.anisotropy = 8;
     return t;
   };
   const roughness = texture(soft(surface, size / 2048), false);
@@ -280,6 +280,8 @@ export async function loadRigged(environment: THREE.Texture): Promise<Figure> {
       const standard = m as THREE.MeshStandardMaterial;
       if (standard.isMeshStandardMaterial) {
         standard.envMap = environment;
+        // Sharp at a glance as well as head on
+        for (const map of [standard.map, standard.normalMap]) if (map) map.anisotropy = 8;
         standard.envMapIntensity = 0.4;
         if (!standard.roughnessMap && !paintMaps(standard).length) {
           standard.roughness = Math.max(standard.roughness, 0.55);

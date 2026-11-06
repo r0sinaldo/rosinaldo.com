@@ -248,7 +248,14 @@ export default function CosmicHero() {
       squares.current!.height = Math.round((SQUARES.height / IMAGE.height) * height * pixels);
       squaresDone = -1;
       const box = figure.current!.getBoundingClientRect();
-      astronaut.resize(box.width, box.height, Math.min(window.devicePixelRatio || 1, 2));
+      // The astronaut at the screen's full sharpness, and where he is small
+      // (on phones) drawn larger than shown and scaled down, so his edges and
+      // the suit's details stay crisp; never more than about 2.5 million
+      // pixels, so it stays light
+      const dpr = window.devicePixelRatio || 1;
+      const sharp = Math.max(dpr, Math.min(4, 1100 / Math.max(1, box.width)));
+      const budget = Math.sqrt(2.5e6 / Math.max(1, box.width * box.height));
+      astronaut.resize(box.width, box.height, Math.min(sharp, budget));
       introDrawn = false;
       if (still) draw(INTRO.end + 1, 0);
     };
@@ -362,8 +369,7 @@ export default function CosmicHero() {
           style={{ ...place(CHART), ...reveal("90deg", "--chart", OVERRUN) }}
           draggable={false}
         />
-        {/* Softened a touch, to sit in the painting rather than on it */}
-        <canvas ref={figure} aria-hidden className="absolute blur-[0.4px]" style={place(ASTRONAUT_BOX)} />
+        <canvas ref={figure} aria-hidden className="absolute" style={place(ASTRONAUT_BOX)} />
         {/* The glowing dust on the rock he stands on, partly in front of him */}
         <canvas ref={ground} aria-hidden className="pointer-events-none absolute" style={place(GROUND)} />
       </div>
