@@ -193,6 +193,23 @@ const HAND_REST = {
   roll: THREE.MathUtils.degToRad(55),
 };
 
+// Standing there once the intro is over: never quite still. He breathes (the
+// chest and shoulders rise and fall), shifts his weight from foot to foot
+// (the upper body sways a touch over his planted feet), and his head drifts,
+// as someone's does looking out at something. All small and slow, and each
+// at its own pace, so it never visibly repeats. Radians and seconds; it comes
+// in over `start`, after his last turn of the head has settled
+const IDLE = {
+  start: [12.2, 14.6] as [number, number],
+  breath: { period: 4.6, chest: THREE.MathUtils.degToRad(0.9) },
+  sway: { period: 8.3, roll: THREE.MathUtils.degToRad(0.8), turn: THREE.MathUtils.degToRad(0.7) },
+  head: { turn: THREE.MathUtils.degToRad(2.2), nod: THREE.MathUtils.degToRad(1.2) },
+};
+const TAU = Math.PI * 2;
+// A slow wander between -1 and 1 from two waves that never fall into step
+const wander = (t: number, a: number, b: number, phase: number) =>
+  0.62 * Math.sin((TAU * t) / a + phase) + 0.38 * Math.sin((TAU * t) / b + phase * 1.7);
+
 // The last look of the intro, away from the chart and out into open space
 // (CosmicHero aims it; here it shapes how the head travels)
 export const LOOK_AWAY: [number, number] = [8.3, 10.4];
@@ -614,6 +631,40 @@ export async function loadRigged(environment: THREE.Texture): Promise<Figure> {
     wristAt.copy(HAND_REST.tips).addScaledVector(fy, -handLength);
   };
 
+  // The idle layer: about the body's own axes (as he stands now)
+  const bodyUp = new THREE.Vector3();
+  const bodySide = new THREE.Vector3();
+  const bodyFront = new THREE.Vector3();
+  const idleTurn = new THREE.Quaternion();
+  const spine1 = chain.find((l) => /Spine1$/.test(l.object.name))?.object;
+  const spine2 = chain.find((l) => /Spine2$/.test(l.object.name))?.object;
+  const about = (bone: THREE.Object3D | undefined, axis: THREE.Vector3, angle: number) => {
+    if (bone && angle) rotateWorld(bone, idleTurn.setFromAxisAngle(axis, angle));
+  };
+  const idle = (t: number) => {
+    const w = smoother(t, IDLE.start);
+    if (w <= 0) return;
+    model.getWorldQuaternion(qa);
+    bodyUp.set(0, 1, 0).applyQuaternion(qa);
+    bodySide.set(1, 0, 0).applyQuaternion(qa);
+    bodyFront.set(0, 0, 1).applyQuaternion(qa);
+    // Breathing: in a little quicker than out
+    const phase = (t / IDLE.breath.period) % 1;
+    const breath = Math.sin(TAU * phase - 0.35 * Math.sin(TAU * phase)) * w;
+    about(spine1, bodySide, -IDLE.breath.chest * 0.4 * breath);
+    about(spine2, bodySide, -IDLE.breath.chest * 0.6 * breath);
+    // Weight shifting over the feet
+    const sway = wander(t, IDLE.sway.period, IDLE.sway.period * 1.73, 0.4) * w;
+    about(spine1, bodyFront, IDLE.sway.roll * sway);
+    about(spine2, bodyUp, IDLE.sway.turn * wander(t, 11.3, 6.7, 2.2) * w);
+    // The head drifting, against the sway so it stays level
+    if (head) {
+      about(head, bodyUp, IDLE.head.turn * wander(t, 9.7, 5.3, 1.1) * w);
+      about(head, bodySide, IDLE.head.nod * wander(t, 7.9, 4.1, 3.0) * w);
+      about(head, bodyFront, -IDLE.sway.roll * 0.6 * sway);
+    }
+  };
+
   return {
     root,
     update(t, gaze) {
@@ -647,6 +698,7 @@ export async function loadRigged(environment: THREE.Texture): Promise<Figure> {
       else smoothAdded.slerp(added, 1 - Math.exp(-step / GAZE.settle));
       addedStarted = true;
       rotateWorld(head, qb.copy(smoothAdded).multiply(clipHead).multiply(qa.invert()));
+      idle(t);
     },
     dispose() {
       mixer.stopAllAction();

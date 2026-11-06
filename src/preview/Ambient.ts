@@ -1,12 +1,24 @@
 import { seeded } from "@/lib/Random";
-import { IMAGE, LIGHTS, NOZZLE, ROCKET, STARS } from "./Layout";
+import { BRIGHT_STARS, FAINT_STARS, IMAGE, LIGHTS, NOZZLE, ROCKET } from "./Layout";
 
 // The space that keeps moving, quietly, for as long as the page is open: the
 // bright stars and the planet's lights twinkle, fine dust drifts past (a
 // little against the pointer, for depth), two clouds of the nebula breathe,
 // and now and then a star falls. Drawn over the picture, in its pixels
 
-type Twinkle = { x: number; y: number; size: number; strength: number; period: number; phase: number; warm: boolean };
+// `kind`: a bright star (a glow and faint rays), a faint one (a small glow),
+// or one of the planet's warm lights
+type Twinkle = {
+  x: number;
+  y: number;
+  size: number;
+  strength: number;
+  period: number;
+  phase: number;
+  kind: "bright" | "faint" | "light";
+  // A second, slower wave, so no star pulses quite like clockwork
+  drift: number;
+};
 type Dust = { x: number; y: number; depth: number; drift: number; phase: number };
 type Shot = { x: number; y: number; start: number };
 
@@ -17,7 +29,7 @@ export type Ambient = {
   nextShot: number;
   firstShot: boolean;
   random: () => number;
-  sprites: { cool: HTMLCanvasElement; warm: HTMLCanvasElement };
+  sprites: { cool: HTMLCanvasElement; warm: HTMLCanvasElement; ray: HTMLCanvasElement };
 };
 
 const SHOT = { length: 240, duration: 1.1, angle: (28 * Math.PI) / 180 };
@@ -115,19 +127,46 @@ function sprite(r: number, g: number, b: number) {
   return canvas;
 }
 
+// A soft ray of light, thin and fading to both ends, for a bright star's cross
+function ray() {
+  const canvas = document.createElement("canvas");
+  canvas.width = 128;
+  canvas.height = 8;
+  const context = canvas.getContext("2d")!;
+  const along = context.createLinearGradient(0, 0, 128, 0);
+  along.addColorStop(0, "rgba(200,220,255,0)");
+  along.addColorStop(0.5, "rgba(235,242,255,1)");
+  along.addColorStop(1, "rgba(200,220,255,0)");
+  context.fillStyle = along;
+  context.fillRect(0, 0, 128, 8);
+  context.globalCompositeOperation = "destination-in";
+  const across = context.createLinearGradient(0, 0, 0, 8);
+  across.addColorStop(0, "rgba(0,0,0,0)");
+  across.addColorStop(0.5, "rgba(0,0,0,1)");
+  across.addColorStop(1, "rgba(0,0,0,0)");
+  context.fillStyle = across;
+  context.fillRect(0, 0, 128, 8);
+  return canvas;
+}
+
 export function makeAmbient(): Ambient {
   const random = seeded(2592);
-  const twinkle = ([x, y, strength]: [number, number, number], warm: boolean): Twinkle => ({
+  const twinkle = ([x, y, strength]: [number, number, number], kind: Twinkle["kind"]): Twinkle => ({
     x,
     y,
     strength,
-    warm,
-    size: warm ? 14 + 10 * strength : 16 + 26 * strength,
-    period: warm ? 1.6 + random() * 2.4 : 2.8 + random() * 4,
+    kind,
+    size: kind === "light" ? 14 + 10 * strength : kind === "bright" ? 34 + 34 * strength : 10 + 10 * strength,
+    period: kind === "light" ? 1.6 + random() * 2.4 : 3.2 + random() * 4.6,
     phase: random() * Math.PI * 2,
+    drift: 9 + random() * 8,
   });
   return {
-    twinkles: [...STARS.map((s) => twinkle(s, false)), ...LIGHTS.map((s) => twinkle(s, true))],
+    twinkles: [
+      ...FAINT_STARS.map((s) => twinkle(s, "faint")),
+      ...BRIGHT_STARS.map((s) => twinkle(s, "bright")),
+      ...LIGHTS.map((s) => twinkle(s, "light")),
+    ],
     dust: Array.from({ length: 90 }, () => ({
       x: random() * IMAGE.width,
       y: random() * IMAGE.height,
@@ -141,7 +180,7 @@ export function makeAmbient(): Ambient {
     nextShot: 11.5,
     firstShot: true,
     random,
-    sprites: { cool: sprite(190, 210, 255), warm: sprite(255, 196, 140) },
+    sprites: { cool: sprite(190, 210, 255), warm: sprite(255, 196, 140), ray: ray() },
   };
 }
 
@@ -191,17 +230,39 @@ export function drawAmbient(
 
   drawFlame(context, k, still ? 0 : time);
 
+  // The stars breathe: each glow swells and fades slowly on a smooth wave
+  // of its own, a slower one under it so none keeps strict time. The bright
+  // ones also put out faint rays that lengthen and draw in with the glow.
+  // The planet's lights flicker a little quicker, as city lights would
   for (const s of ambient.twinkles) {
+    const slow = still ? 0 : 0.5 + 0.5 * Math.sin((time * Math.PI * 2) / s.drift + s.phase * 1.3);
     const wave = still ? 0.5 : 0.5 + 0.5 * Math.sin((time * Math.PI * 2) / s.period + s.phase);
-    context.globalAlpha = (s.warm ? 0.55 : 0.4) * s.strength * wave * wave + 0.04;
-    const size = s.size * k * (0.85 + 0.3 * wave);
-    context.drawImage(
-      s.warm ? ambient.sprites.warm : ambient.sprites.cool,
-      s.x * k - size / 2,
-      s.y * k - size / 2,
-      size,
-      size,
-    );
+    // Eased at both ends, so it lingers at its brightest and its dimmest
+    const breath = wave * wave * (3 - 2 * wave) * (0.75 + 0.25 * slow);
+    const x = s.x * k;
+    const y = s.y * k;
+    if (s.kind === "light") {
+      context.globalAlpha = 0.55 * s.strength * breath * breath + 0.04;
+      const size = s.size * k * (0.85 + 0.3 * breath);
+      context.drawImage(ambient.sprites.warm, x - size / 2, y - size / 2, size, size);
+      continue;
+    }
+    const bright = s.kind === "bright";
+    context.globalAlpha = (bright ? 0.12 + 0.3 * breath : 0.06 + 0.32 * breath) * s.strength;
+    const size = s.size * k * (0.8 + 0.35 * breath);
+    context.drawImage(ambient.sprites.cool, x - size / 2, y - size / 2, size, size);
+    if (bright) {
+      // Four rays, the long pair upright, the short pair across
+      const length = s.size * k * (1.3 + 1.1 * breath) * (0.6 + 0.4 * s.strength);
+      const width = Math.max(1, 2.2 * k);
+      context.globalAlpha = (0.05 + 0.2 * breath) * s.strength;
+      context.drawImage(ambient.sprites.ray, x - length / 2, y - width / 2, length, width);
+      context.save();
+      context.translate(x, y);
+      context.rotate(Math.PI / 2);
+      context.drawImage(ambient.sprites.ray, -length * 0.65, -width / 2, length * 1.3, width);
+      context.restore();
+    }
   }
 
   // Dust: drifts left and a touch up or down, wrapping round

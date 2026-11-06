@@ -215,15 +215,17 @@ export default function CosmicHero() {
       root.style.setProperty("--chart", String(chart));
     };
 
-    // One frame of everything at `t` seconds; past the intro only the
-    // ambient space changes, so the rest isn't redrawn
+    // One frame of everything at `t` seconds. Past the intro the chart and
+    // the squares stay as they are, so they aren't redrawn; the astronaut
+    // goes on standing there, breathing (see astronaut/Rigged), unless the
+    // visitor prefers things still
     let introDrawn = false;
     const draw = (t: number, dt: number) => {
       if (t <= INTRO.end || !introDrawn) {
         intro(Math.min(t, INTRO.end));
-        astronaut.render(Math.min(t, INTRO.end), gazeAt(Math.min(t, INTRO.end)));
         introDrawn = t > INTRO.end;
       }
+      if (t <= INTRO.end || !still) astronaut.render(t, gazeAt(Math.min(t, INTRO.end)));
       pointer.x += (pointer.tx - pointer.x) * Math.min(1, dt * 2);
       pointer.y += (pointer.ty - pointer.y) * Math.min(1, dt * 2);
       drawAmbient(context, ambient, t, dt, pointer, still);
