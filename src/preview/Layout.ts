@@ -6,9 +6,24 @@ export const IMAGE = { width: 2592, height: 1454 };
 export type Box = { left: number; top: number; width: number; height: number };
 
 export const SQUARES: Box = { left: 0, top: 0, width: 580, height: 1454 };
+// The squares' grid: where its first lines are and how far apart, so each
+// square can come in on its own
+export const SQUARE_GRID = { x: -11, y: 10, width: 95, height: 90.5 };
+
+// Cut out of the painting so they can move (the painting behind them is
+// filled in): the rocket, and three rocks in front of the planet
+export const ROCKET: Box = { left: 1625, top: 240, width: 150, height: 160 };
+// Where its flame leaves the rocket, and the way the flame points
+export const NOZZLE = { x: 1698, y: 368, angle: Math.atan2(232, -200) };
+export const ROCKS: (Box & { src: string; depth: number })[] = [
+  { src: "/cosmic/rock-a.webp", left: 2335, top: 450, width: 62, height: 52, depth: 0.5 },
+  { src: "/cosmic/rock-b.webp", left: 2522, top: 428, width: 70, height: 84, depth: 0.7 },
+  { src: "/cosmic/rock-c.webp", left: 2455, top: 505, width: 120, height: 115, depth: 1 },
+];
 export const CHART: Box = { left: 1000, top: 140, width: 1420, height: 980 };
 
-// The chart's height every 20px across its box, for the light that draws it
+// The chart's height every 20px across its box (the band along it is where
+// the painting was cleaned of the chart's ghost)
 export const CHART_STEP = 20;
 export const CHART_PATH = [
   953, 982, 977, 969, 956, 928, 919, 914, 907, 911, 921, 913, 898, 881, 865, 852, 844, 847, 844, 815, 795, 766, 727,

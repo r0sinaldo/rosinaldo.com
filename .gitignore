@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local AI agent settings
 .claude/settings.local.json
+
+# client reference material and 3D working files for the preview (large, private)
+/src/preview/references/
