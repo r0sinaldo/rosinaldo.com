@@ -1,36 +1,25 @@
 @import "tailwindcss";
 
-/* A quiet gray scale (page, a raised surface, hairlines, three text levels), light by default
-   and dark when the system asks for it */
+/* One dark theme, whatever the system asks for: a near black with a trace of
+   blue in it, a raised surface, hairlines, and three levels of text */
 :root {
-  --background: #fcfcfc;
-  --surface: #f3f3f3;
-  --line: #e4e4e4;
-  --faint: #8d8d8d;
-  --muted: #6f6f6f;
-  --foreground: #202020;
-  color-scheme: light;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #111111;
-    --surface: #191919;
-    --line: #2a2a2a;
-    --faint: #7b7b7b;
-    --muted: #a8a8a8;
-    --foreground: #eeeeee;
-    color-scheme: dark;
-  }
+  --background: #0a0a0b;
+  --surface: #141415;
+  --line: #262628;
+  --faint: #7c7c82;
+  --muted: #a3a3a9;
+  --foreground: #ededef;
+  color-scheme: dark;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
+  --color-line: var(--line);
   --color-faint: var(--faint);
   --color-muted: var(--muted);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter);
+  --font-sans: var(--font-space-grotesk);
   --animate-rise: rise 0.6s cubic-bezier(0.23, 1, 0.32, 1) var(--delay, 0ms) both;
   /* A new label on a button settling in, and a check mark drawing itself */
   --animate-label: label 0.25s cubic-bezier(0.23, 1, 0.32, 1) both;
@@ -136,6 +125,16 @@
     grid-column: 1 / -1;
     max-width: 600px;
     min-width: 0;
+  }
+
+  /* The home page's painting (see art/Painting): it thins out towards the
+     words (under it on phones, to its left above) */
+  .painting {
+    mask-image: linear-gradient(#000 72%, transparent);
+
+    @media (width >= 40rem) {
+      mask-image: linear-gradient(90deg, transparent, #000 26%);
+    }
   }
 
   .bone {
