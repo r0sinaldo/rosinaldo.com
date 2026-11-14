@@ -1,4 +1,5 @@
 import { seeded } from "@/lib/Random";
+import { pickPaint, WHITE } from "./Palette";
 
 // A painting in poured paint, made rather than copied, after Jackson Pollock's
 // black pourings of 1951. Two parts, as those have: to the left, paint let
@@ -18,8 +19,9 @@ export const BOX = { width: 1000, height: 900 };
 
 // What is poured in one go: its touches (x, y, radius, one after another), in
 // the order they land, from `start` for `duration` (s). `fall`: let fall,
-// slowing as it runs out, rather than moved by the hand
-export type Stroke = { touches: Float32Array; start: number; duration: number; fall: boolean };
+// slowing as it runs out, rather than moved by the hand. `paint`: which (see
+// Palette)
+export type Stroke = { touches: Float32Array; start: number; duration: number; fall: boolean; paint: number };
 
 type Point = { x: number; y: number; width: number };
 
@@ -70,7 +72,7 @@ function paint(): Stroke[] {
   };
 
   const add = (touches: number[], start: number, duration: number, fall = false) => {
-    strokes.push({ touches: Float32Array.from(touches), start: BEGIN + start, duration, fall });
+    strokes.push({ touches: Float32Array.from(touches), start: BEGIN + start, duration, fall, paint: WHITE });
     return touches;
   };
 
@@ -212,7 +214,47 @@ function paint(): Stroke[] {
 
   // In the order it is poured, so that drawn all at once (the window resized,
   // or motion reduced) the same paint lies over the same paint
+  // Two heavy lines, poured from a full can, ragged and swelling, and a heavy
+  // run: made last, so all the rest is as it was
+  for (const [start, x, y] of [
+    [2.2, 690, 470],
+    [3.9, 760, 360],
+  ]) {
+    const points: Point[] = [];
+    let heading = between(0, TAU);
+    let curl = between(-0.01, 0.01);
+    let swell = 0;
+    let px = x;
+    let py = y;
+    const length = between(420, 620);
+    for (let i = 0; i < length; i++) {
+      curl = curl * 0.995 + between(-0.0016, 0.0016);
+      heading += curl;
+      if (((px - KNOT.x) / KNOT.rx) ** 2 + ((py - KNOT.y) / KNOT.ry) ** 2 > 1) {
+        heading += turn(heading, Math.atan2(KNOT.y - py, KNOT.x - px)) * 0.03;
+      }
+      px += Math.cos(heading);
+      py += Math.sin(heading);
+      swell = Math.max(-1.2, Math.min(1.2, swell * 0.97 + between(-0.09, 0.09)));
+      const taper = Math.min(1, i / 25, (length - i) / 35);
+      const width = between(7, 9) * Math.max(0.3, 1 + 0.6 * swell) * (0.3 + 0.7 * taper);
+      points.push({ x: px, y: py, width });
+      // Ragged: paint spreading out beside it
+      const aside = between(-0.55, 0.55) * width * 0.5;
+      points.push({ x: px - Math.sin(heading) * aside, y: py + Math.cos(heading) * aside, width: width * 0.6 });
+    }
+    add(lay(points, false), start, length / 300);
+  }
+  run(2.8, 455, between(20, 120), 5.5, 620, 100, 10);
+
   return strokes.sort((a, b) => a.start - b.start);
 }
 
-export const PAINTING = paint();
+// Its paints, picked from their own seed, so the picking leaves the rest of the
+// painting as it was. The first stroke stays white
+export const PAINTING = (() => {
+  const strokes = paint();
+  const random = seeded(51);
+  strokes.forEach((stroke, i) => (stroke.paint = i ? pickPaint(random) : WHITE));
+  return strokes;
+})();

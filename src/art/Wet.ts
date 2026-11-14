@@ -8,6 +8,7 @@ import {
   LinearFilter,
   MaxEquation,
   Mesh,
+  NormalBlending,
   OneFactor,
   OrthographicCamera,
   PlaneGeometry,
@@ -20,13 +21,20 @@ import {
   WebGLRenderTarget,
 } from "three";
 import { createHand, setIn } from "./Hand";
-import { COPY, FLOW, LOOK, QUAD, TOUCH_FRAGMENT, TOUCH_VERTEX } from "./Shaders";
+import { PAINTS, WHITE } from "./Palette";
+import { COPY, FLOW, LOOK, QUAD, TINT_FRAGMENT, TOUCH_FRAGMENT, TOUCH_VERTEX } from "./Shaders";
+
+// The paints as the shaders take them: 0 to 1 a channel, as they are shown
+const TINTS = PAINTS.map(({ colour }) => {
+  const value = parseInt(colour.slice(1), 16);
+  return [(value >> 16) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
+});
 
 // The home page's painting, wet. The paint is kept as a picture of how thick
 // it lies and how wet it is, a pixel of it for each pixel of the screen; a
-// hand (see Hand) keeps pouring into it; a shader moves it on, moment by
-// moment (wet paint runs, levels, dries, and in time sinks away); and another
-// shows it, lit (see Shaders). The pointer carries a lamp over it, and,
+// hand (see Hand) keeps pouring into it, and its runs crawl down it; a shader
+// moves it on, moment by moment (it dries, and in time sinks away); and
+// another shows it, lit (see Shaders). The pointer carries a lamp over it, and,
 // pressed, pours too
 
 // The most pixels the paint is kept in: past this it is kept coarser
@@ -35,9 +43,14 @@ const MOST = 2_600_000;
 const TOUCHES = 2048;
 // Seconds for paint to dry; then how fast it sinks away (a share of it a
 // second, and a little besides, so that what is thin does go)
-const DRY = 30;
-const FADE = 1 / 95;
-const SINK = 0.0007;
+const DRY = 24;
+const FADE = 1 / 38;
+const SINK = 0.003;
+// How often the paint dries a step (s). Not every frame: the paint is kept
+// in half floats, and a frame's worth of drying, taken off thick paint, is
+// smaller than the gap between two of them, so it would be rounded away and
+// thick paint would never go
+const DRYING_STEP = 0.1;
 // How steep the paint's relief is lit as
 const RELIEF = 2.4;
 // The lamp: how long it takes to go round (s), and how high it hangs
@@ -66,15 +79,14 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     new ShaderMaterial({ vertexShader: QUAD, fragmentShader, uniforms, depthTest: false, depthWrite: false });
   const flow = shader(FLOW, {
     uState: { value: null },
-    uTexel: { value: texel },
     uStep: { value: 0 },
-    uFlow: { value: 0 },
     uDry: { value: 1 / DRY },
     uFade: { value: FADE },
     uSink: { value: SINK },
   });
   const look = shader(LOOK, {
     uState: { value: null },
+    uColour: { value: null },
     uTexel: { value: texel },
     uLight: { value: new Vector3(0, 0, 1) },
     uPointer: { value: new Vector3(0, 0, 0) },
@@ -85,9 +97,11 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
   // The touches of paint to lay down this frame
   const spots = new Float32Array(TOUCHES * 3);
   const pours = new Float32Array(TOUCHES * 2);
+  const tints = new Float32Array(TOUCHES * 3);
   const geometry = new BufferGeometry();
   geometry.setAttribute("position", new BufferAttribute(spots, 3).setUsage(DynamicDrawUsage));
   geometry.setAttribute("pour", new BufferAttribute(pours, 2).setUsage(DynamicDrawUsage));
+  geometry.setAttribute("tint", new BufferAttribute(tints, 3).setUsage(DynamicDrawUsage));
   const touches = new Points(
     geometry,
     new ShaderMaterial({
@@ -109,6 +123,22 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
   touches.frustumCulled = false;
   const pouring = new Scene();
   pouring.add(touches);
+  // The same touches again, laying their colour into the colour's picture
+  const tinting = new Points(
+    geometry,
+    new ShaderMaterial({
+      vertexShader: TOUCH_VERTEX,
+      fragmentShader: TINT_FRAGMENT,
+      uniforms: { uSize: { value: size } },
+      depthTest: false,
+      depthWrite: false,
+      transparent: true,
+      blending: NormalBlending,
+    }),
+  );
+  tinting.frustumCulled = false;
+  const colouring = new Scene();
+  colouring.add(tinting);
   let count = 0;
 
   // The paint now, and a second canvas to work the next moment out on
@@ -121,6 +151,7 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     });
   let now: WebGLRenderTarget | null = null;
   let next: WebGLRenderTarget | null = null;
+  let colours: WebGLRenderTarget | null = null;
   // Pixels of the paint for each of the page's, and the painting's box on it
   let pixels = 1;
   let box = setIn(1, 1);
@@ -141,27 +172,29 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     const h = Math.round(height * pixels);
     if (now && w === size.x && h === size.y) return;
     renderer.setSize(w, h, false);
-    const [was, spare] = [now, next];
+    const [was, spare, wasColours] = [now, next, colours];
     now = canvasFor(w, h);
     next = canvasFor(w, h);
-    for (const target of [now, next]) {
+    colours = canvasFor(w, h);
+    for (const target of [now, next, colours]) {
       renderer.setRenderTarget(target);
       renderer.clear();
     }
-    // The paint there was, stretched to the new canvas
+    // The paint there was, and its colours, stretched to the new canvas
     if (was) draw(copy, was, now);
+    if (wasColours) draw(copy, wasColours, colours);
     was?.dispose();
     spare?.dispose();
+    wasColours?.dispose();
     size.set(w, h);
     texel.set(1 / w, 1 / h);
     box = setIn(width, height);
-    // Paint runs as fast on the page whatever it is kept at
-    flow.uniforms.uFlow.value = 0.2 * pixels;
   };
 
   // A touch of paint, in the page's pixels from the wall's top left
-  const lay = (x: number, y: number, radius: number, thick: number, drop = false) => {
+  const lay = (x: number, y: number, radius: number, thick: number, paint: number, drop = false) => {
     if (count === TOUCHES) return;
+    tints.set(TINTS[paint], count * 3);
     spots[count * 3] = x * pixels;
     spots[count * 3 + 1] = size.y - y * pixels;
     spots[count * 3 + 2] = Math.max(0.6, radius * pixels);
@@ -169,27 +202,37 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     pours[count * 2 + 1] = drop ? 1 : 0;
     count++;
   };
-  const hand = createHand((x, y, radius, thick, drop) => {
+  const hand = createHand((x, y, radius, thick, paint, drop) => {
     const [px, py] = box.place(x, y);
-    lay(px, py, radius * box.scale, thick, drop);
+    lay(px, py, radius * box.scale, thick, paint, drop);
   });
 
   let time = 0;
-  // One moment on: the hand moves, the paint flows, the new paint lands
+  let drying = 0;
+  // One moment on: the hand moves, the paint dries (now and then), the new
+  // paint lands
   const advance = (dt: number) => {
     if (!now || !next) return;
     time += dt;
     hand.move(dt);
-    flow.uniforms.uStep.value = dt;
-    draw(flow, now, next);
+    drying += dt;
+    if (drying >= DRYING_STEP) {
+      flow.uniforms.uStep.value = drying;
+      draw(flow, now, next);
+      [now, next] = [next, now];
+      drying = 0;
+    }
     if (count) {
+      renderer.setRenderTarget(now);
       geometry.attributes.position.needsUpdate = true;
       geometry.attributes.pour.needsUpdate = true;
+      geometry.attributes.tint.needsUpdate = true;
       geometry.setDrawRange(0, count);
       renderer.render(pouring, camera);
+      renderer.setRenderTarget(colours);
+      renderer.render(colouring, camera);
       count = 0;
     }
-    [now, next] = [next, now];
   };
 
   const pointer = { x: 0, y: 0, over: false, down: false, lit: 0 };
@@ -202,6 +245,7 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     look.uniforms.uPointer.value.set(pointer.x * pixels, size.y - pointer.y * pixels, pointer.lit);
     renderer.setRenderTarget(null);
     renderer.clear();
+    look.uniforms.uColour.value = colours?.texture ?? null;
     draw(look, now, null);
   };
 
@@ -226,6 +270,7 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
           pointer.y + (y - pointer.y) * t,
           radius,
           (0.34 - 0.2 * fast) / (6 * radius),
+          WHITE,
         );
       }
     }
@@ -240,7 +285,7 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
     pointer.down = true;
     // Where the paint first lands
     for (let i = 0; i < 4; i++)
-      lay(pointer.x + (Math.random() - 0.5) * 4, pointer.y + (Math.random() - 0.5) * 4, 4, 0.4, true);
+      lay(pointer.x + (Math.random() - 0.5) * 4, pointer.y + (Math.random() - 0.5) * 4, 4, 0.4, WHITE, true);
   };
   const onUp = () => {
     pointer.down = false;
@@ -283,11 +328,6 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
   frame = requestAnimationFrame(loop);
 
   return {
-    // A while of it at once, unseen: for looking at it some way in
-    skip(seconds: number) {
-      for (let t = 0; t < seconds; t += 1 / 60) advance(1 / 60);
-      show(0);
-    },
     dispose() {
       cancelAnimationFrame(frame);
       observer.disconnect();
@@ -300,8 +340,10 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
       canvas.removeEventListener("webglcontextlost", onContextLost);
       now?.dispose();
       next?.dispose();
+      colours?.dispose();
       geometry.dispose();
       (touches.material as ShaderMaterial).dispose();
+      (tinting.material as ShaderMaterial).dispose();
       quad.geometry.dispose();
       for (const material of [flow, look, copy]) material.dispose();
       renderer.dispose();

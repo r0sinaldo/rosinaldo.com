@@ -22,11 +22,7 @@ export default function Living() {
     import("./Wet")
       .then(({ createWet }) => {
         if (gone || !canvas.current || !wall.current) return;
-        const made = createWet(canvas.current, wall.current, () => setFailed(true));
-        wet = made;
-        // TEMPORARY, for tuning: ?skip=40 opens it forty seconds in
-        const skip = Number(new URLSearchParams(window.location.search).get("skip"));
-        if (skip) made.skip(skip);
+        wet = createWet(canvas.current, wall.current, () => setFailed(true));
       })
       .catch((error) => {
         console.info("[painting] no wet paint, showing the still painting:", error?.message ?? error);

@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { readTokens, rgbChannels } from "@/lib/Tokens";
+import { rgbChannels } from "@/lib/Tokens";
 import { useReducedMotion } from "@/lib/useReducedMotion";
+import { PAINTS } from "./Palette";
 import { BOX, PAINTING } from "./Pour";
 
 // The home page's painting, still (see Living for it wet, which is what is
@@ -31,10 +32,9 @@ export default function Painting() {
     const element = canvas.current;
     if (!room || !element) return;
     const context = element.getContext("2d")!;
-    // The paint, and the colour of what has soaked a little way into the page
-    // around it
-    const ink = readTokens().foreground;
-    const soak = `rgb(${rgbChannels(ink).join(" ")} / 0.45)`;
+    // The paints, and for each the colour of what has soaked a little way into
+    // the page around it
+    const paints = PAINTS.map(({ colour }) => ({ colour, soak: `rgb(${rgbChannels(colour).join(" ")} / 0.45)` }));
     // How many of each stroke's touches are down
     const down = PAINTING.map(() => 0);
     let time = reducedMotion ? Infinity : 0;
@@ -44,11 +44,13 @@ export default function Painting() {
     // Returns whether anything is still being poured
     const pour = () => {
       let pouring = false;
-      PAINTING.forEach(({ touches, start, duration, fall }, s) => {
+      PAINTING.forEach(({ touches, start, duration, fall, paint }, s) => {
         const count = touches.length / 3;
         if (down[s] === count || time < start) return;
         const t = Math.min(1, (time - start) / duration);
         const landed = Math.floor(count * (fall ? 1 - (1 - t) ** 2 : t));
+        context.fillStyle = paints[paint].colour;
+        context.shadowColor = paints[paint].soak;
         context.beginPath();
         for (let i = down[s] * 3; i < landed * 3; i += 3) {
           const radius = Math.max(touches[i + 2], finest);
@@ -81,8 +83,6 @@ export default function Painting() {
       );
       // (Not scaled with the rest: in the canvas's own pixels)
       context.shadowBlur = 1.2 * pixels;
-      context.shadowColor = soak;
-      context.fillStyle = ink;
       finest = FINEST / scale;
       // A canvas resized is a canvas cleared: everything down goes down again
       down.fill(0);
