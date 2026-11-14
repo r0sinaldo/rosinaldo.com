@@ -5,7 +5,8 @@ import { readTokens, rgbChannels } from "@/lib/Tokens";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { BOX, PAINTING } from "./Pour";
 
-// The home page's painting: poured as the page opens, stroke by stroke, and
+// The home page's painting, still (see Living for it wet, which is what is
+// shown where it can be): poured as the page opens, stroke by stroke, and
 // then left alone. Nothing in it moves once it has landed; only, every so
 // often, a little more paint runs or lands (see Pour). So it is only drawn
 // while something is being poured, and only what is new: paint already down
@@ -14,6 +15,11 @@ import { BOX, PAINTING } from "./Pour";
 // The thinnest a touch of paint is drawn, in screen pixels, however small
 // the painting is shown
 const FINEST = 0.45;
+
+// Where the painting hangs: above the words on phones; beside them, down the
+// right of the window, on anything wider
+export const WALL =
+  "painting pointer-events-none relative h-[44svh] shrink-0 sm:fixed sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[58%]";
 
 export default function Painting() {
   const wall = useRef<HTMLDivElement>(null);
@@ -126,13 +132,7 @@ export default function Painting() {
   }, [reducedMotion]);
 
   return (
-    // Above the words on phones; beside them, down the right of the window,
-    // on anything wider
-    <div
-      ref={wall}
-      aria-hidden
-      className="painting pointer-events-none relative h-[44svh] shrink-0 sm:fixed sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[58%]"
-    >
+    <div ref={wall} aria-hidden className={WALL}>
       <canvas ref={canvas} className="absolute inset-0 size-full" />
     </div>
   );

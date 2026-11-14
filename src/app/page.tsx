@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Painting from "@/art/Painting";
+import Living from "@/art/Living";
 import { GRID, Guides } from "@/components/Column";
 import LabCover from "@/components/LabCover";
 import type { DemoName } from "@/experiments/Demos";
@@ -27,7 +27,7 @@ export default function Home() {
   return (
     <>
       <Guides />
-      <Painting />
+      <Living />
       <main className={`${GRID} relative flex-1 content-start pt-2 pb-10 sm:content-center sm:py-24`}>
         <div className="col-span-4 sm:col-start-2 sm:col-end-7 lg:col-end-6 xl:col-end-5">
           <header className="animate-rise" style={riseDelay(0)}>
