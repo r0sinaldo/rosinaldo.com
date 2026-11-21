@@ -4,6 +4,10 @@ import { LABS } from "./src/app/lab/Labs";
 const nextConfig: NextConfig = {
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    // Which upgrades Next.js points coding agents to: security fixes only
+    agentUpgrade: "security",
+  },
   // The site used to have one page per section; old links land on the home page
   async redirects() {
     return ["/about", "/experience", "/skills", "/blog", "/contact"].map((source) => ({
