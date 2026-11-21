@@ -12,6 +12,12 @@
   color-scheme: dark;
 }
 
+/* Wide enough for the home page's painting to hang beside its words rather
+   than above them: a laptop, a desktop, a tablet held sideways; not a phone,
+   nor a tablet held upright, where the painting goes above, everything
+   centred (see art/Painting) */
+@custom-variant wide (@media (width >= 64rem) and (min-aspect-ratio: 4/5));
+
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
@@ -53,22 +59,48 @@
   }
 }
 
+/* With the keyboard, every control shows the same ring: quiet, in the
+   site's own grey, never the browser's blue. A control can still draw its
+   own (focus-visible:outline-…) */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--faint);
+    outline-offset: 2px;
+  }
+
+  a:focus-visible {
+    border-radius: 2px;
+  }
+}
+
+/* A page's title: the one thing a step above the text, the same on every
+   page (the home page's name, the Lab, a lab, a missing page) */
+@utility page-title {
+  font-size: 22px;
+  line-height: 1.25;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}
+
+/* A link in running text: underlined faintly all the time, so it reads as
+   one on a phone too (no hover there), and more clearly under the pointer */
 @utility link {
   color: var(--foreground);
   font-weight: 500;
   text-decoration-line: underline;
   text-decoration-thickness: 1px;
-  text-underline-offset: 3px;
-  text-decoration-color: transparent;
+  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 55%, transparent);
+  border-radius: 2px;
   transition: text-decoration-color 0.2s ease;
 
   @media (hover: hover) {
     &:hover {
-      text-decoration-color: var(--faint);
+      text-decoration-color: var(--muted);
     }
   }
   &:focus-visible {
-    text-decoration-color: var(--faint);
+    outline-offset: 3px;
   }
 }
 
@@ -128,11 +160,11 @@
   }
 
   /* The home page's painting (see art/Painting): it thins out towards the
-     words (under it on phones, to its left above) */
+     words (under it, or to its left where it hangs beside them) */
   .painting {
-    mask-image: linear-gradient(#000 72%, transparent);
+    mask-image: linear-gradient(#000 80%, transparent);
 
-    @media (width >= 40rem) {
+    @variant wide {
       mask-image: linear-gradient(90deg, transparent, #000 26%);
     }
   }

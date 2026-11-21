@@ -17,6 +17,30 @@ import { pickPaint, WHITE } from "./Palette";
 
 export const BOX = { width: 1000, height: 900 };
 
+// Where in the box the paint actually goes, across: the columns start a
+// little way in and the thrown lines reach its right edge
+const PAINTED = { left: 120, right: 1010 };
+
+// The painting's box, set in a wall `width` by `height`. Beside the words, as
+// large as fits, against the window's right edge, half way up. Above them (on
+// phones and on tablets held upright), its paint centred across the wall and
+// as wide as it: the box may run past either side, where there is no paint.
+// Returns a point of the box as a point of the wall, and how large a pixel of
+// the box is on it
+export function setIn(width: number, height: number, beside: boolean) {
+  const painted = PAINTED.right - PAINTED.left;
+  const scale = beside
+    ? Math.min(width / BOX.width, height / BOX.height)
+    : Math.min(width / painted, height / BOX.height);
+  const left = beside ? width - BOX.width * scale : (width - painted * scale) / 2 - PAINTED.left * scale;
+  const top = (height - BOX.height * scale) / 2;
+  return { scale, left, top, place: (x: number, y: number) => [left + x * scale, top + y * scale] as const };
+}
+
+// Whether the wall hangs beside the words (fixed down the right of the
+// window) rather than above them: the stylesheet decides (see WALL)
+export const hangsBeside = (wall: HTMLElement) => getComputedStyle(wall).position === "fixed";
+
 // What is poured in one go: its touches (x, y, radius, one after another), in
 // the order they land, from `start` for `duration` (s). `fall`: let fall,
 // slowing as it runs out, rather than moved by the hand. `paint`: which (see

@@ -2,53 +2,40 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import Living from "@/art/Living";
 import { GRID, Guides } from "@/components/Column";
-import LabCover from "@/components/LabCover";
-import type { DemoName } from "@/experiments/Demos";
 import { riseDelay } from "@/lib/Rise";
 import { CONTACT_EMAIL, SITE_FULL_NAME, SITE_ROLE } from "@/lib/Site";
-import { LAB_DESCRIPTION } from "./lab/Labs";
 
 export const metadata: Metadata = { alternates: { canonical: "/" } };
 
-// What the Lab's card plays, round and round: a few of its demos, the light
-// ones (none that need WebGL, so the home page never loads three.js)
-const SHOWN: DemoName[] = [
-  "hold-classic",
-  "skeleton-one-light",
-  "hold-from-your-finger",
-  "skeleton-ink",
-  "hold-building-tension",
-  "skeleton-morph",
-];
-
 // The grid, drawn exactly; the painting, poured over it; and the words, few
-// and small, set on the grid's lines beside it
+// and small, set on the grid's lines: under the painting and centred on phones
+// and on tablets held upright, beside it where there is room (see WALL)
 export default function Home() {
   return (
     <>
       <Guides />
       <Living />
-      <main className={`${GRID} relative flex-1 content-start pt-2 pb-10 sm:content-center sm:py-24`}>
-        <div className="col-span-4 sm:col-start-2 sm:col-end-7 lg:col-end-6 xl:col-end-5">
+      <main
+        className={`${GRID} relative flex-1 content-start pt-2 pb-14 text-center wide:content-center wide:py-24 wide:text-left`}
+      >
+        <div className="col-span-4 sm:col-start-3 sm:col-end-11 md:col-start-4 md:col-end-10 wide:col-start-2 wide:col-end-6 wide:xl:col-end-5">
           <header className="animate-rise" style={riseDelay(0)}>
-            <h1 className="leading-snug font-medium">{SITE_FULL_NAME}</h1>
-            <p className="leading-snug text-muted">{SITE_ROLE}</p>
+            {/* The name leads, a step above everything else; the role sits
+                just under it, at the text's size and quieter than the rest */}
+            <h1 className="page-title">{SITE_FULL_NAME}</h1>
+            <p className="mt-1 leading-snug text-faint">{SITE_ROLE}</p>
           </header>
 
-          <p className="mt-6 animate-rise text-pretty text-muted" style={riseDelay(1)}>
+          {/* What I care about: said, not noted, so a step brighter than the
+              notes around it */}
+          <p className="mt-6 animate-rise text-pretty text-foreground/80" style={riseDelay(1)}>
             Happiest when an interface looks, moves and feels exactly right.
           </p>
 
-          {/* The proof of it: the Lab, playing. Only a picture of its demos
-              (not focusable, not pressable), so the whole card is one link */}
-          <Link href="/lab" className="group mt-10 block animate-rise" style={riseDelay(2)}>
-            <div
-              inert
-              className="pointer-events-none relative aspect-video overflow-hidden rounded-[4px] bg-surface transition-colors duration-200 group-hover:bg-[color-mix(in_srgb,var(--surface),var(--foreground)_3%)]"
-            >
-              <LabCover demos={SHOWN} />
-            </div>
-            <p className="mt-3 flex items-center gap-1 font-medium">
+          {/* Where to go from here: the Lab, the proof of it, and a way to
+              write. Two short lines, kept together */}
+          <div className="mt-8 flex animate-rise flex-col items-center gap-2 wide:items-start" style={riseDelay(2)}>
+            <Link href="/lab" className="group flex items-center gap-1 font-medium focus-visible:outline-offset-3">
               Lab
               <svg
                 aria-hidden
@@ -64,15 +51,11 @@ export default function Home() {
                   strokeLinejoin="round"
                 />
               </svg>
-            </p>
-            <p className="text-pretty text-muted">{LAB_DESCRIPTION}</p>
-          </Link>
-
-          <p className="mt-10 animate-rise" style={riseDelay(3)}>
-            <a href={`mailto:${CONTACT_EMAIL}`} className="link text-muted">
+            </Link>
+            <a href={`mailto:${CONTACT_EMAIL}`} className="link">
               {CONTACT_EMAIL}
             </a>
-          </p>
+          </div>
         </div>
       </main>
     </>

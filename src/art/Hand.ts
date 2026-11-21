@@ -1,5 +1,4 @@
 import { pickPaint, WHITE } from "./Palette";
-import { BOX } from "./Pour";
 
 // The hand that pours the wet painting (see Wet), for as long as the page is
 // open. It does what the still painting's was made of (see Pour), but in its
@@ -12,7 +11,7 @@ import { BOX } from "./Pour";
 // rarely only one thing. No line keeps one width: each swells and narrows as
 // the paint came off the stick; and now and then one is heavy, poured from
 // a full can: thick, ragged at its edges, pooling, throwing paint off, and
-// running wide. Everything is in the painting's own box (BOX)
+// running wide. Everything is in the painting's own box (BOX, see Pour)
 
 // Lays down one touch of paint: where, how wide, how thick, which paint (see
 // Palette), and whether it is a drop (domed) rather than a touch of a line.
@@ -326,14 +325,4 @@ export function createHand(emit: Emit) {
       }
     },
   };
-}
-
-// The painting's box, set in a wall `width` by `height`: as large as fits,
-// against the right edge, half way up. Returns a point of the box as a point
-// of the wall, and how large a pixel of the box is on it
-export function setIn(width: number, height: number) {
-  const scale = Math.min(width / BOX.width, height / BOX.height);
-  const left = width - BOX.width * scale;
-  const top = (height - BOX.height * scale) / 2;
-  return { scale, place: (x: number, y: number) => [left + x * scale, top + y * scale] as const };
 }

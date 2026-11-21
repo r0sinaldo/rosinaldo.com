@@ -20,8 +20,9 @@ import {
   WebGLRenderer,
   WebGLRenderTarget,
 } from "three";
-import { createHand, setIn } from "./Hand";
+import { createHand } from "./Hand";
 import { PAINTS, WHITE } from "./Palette";
+import { hangsBeside, setIn } from "./Pour";
 import { COPY, FLOW, LOOK, QUAD, TINT_FRAGMENT, TOUCH_FRAGMENT, TOUCH_VERTEX } from "./Shaders";
 
 // The paints as the shaders take them: 0 to 1 a channel, as they are shown
@@ -154,7 +155,8 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
   let colours: WebGLRenderTarget | null = null;
   // Pixels of the paint for each of the page's, and the painting's box on it
   let pixels = 1;
-  let box = setIn(1, 1);
+  let beside = true;
+  let box = setIn(1, 1, beside);
 
   const draw = (material: ShaderMaterial, from: WebGLRenderTarget, to: WebGLRenderTarget | null) => {
     material.uniforms.uState.value = from.texture;
@@ -180,15 +182,20 @@ export function createWet(canvas: HTMLCanvasElement, wall: HTMLElement, onLost: 
       renderer.setRenderTarget(target);
       renderer.clear();
     }
-    // The paint there was, and its colours, stretched to the new canvas
-    if (was) draw(copy, was, now);
-    if (wasColours) draw(copy, wasColours, colours);
+    // The paint there was, and its colours, stretched to the new canvas;
+    // unless the painting has moved (from beside the words to above them, or
+    // back), when it starts again
+    const wasBeside = beside;
+    beside = hangsBeside(wall);
+    const moved = beside !== wasBeside;
+    if (was && !moved) draw(copy, was, now);
+    if (wasColours && !moved) draw(copy, wasColours, colours);
     was?.dispose();
     spare?.dispose();
     wasColours?.dispose();
     size.set(w, h);
     texel.set(1 / w, 1 / h);
-    box = setIn(width, height);
+    box = setIn(width, height, beside);
   };
 
   // A touch of paint, in the page's pixels from the wall's top left

@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { rgbChannels } from "@/lib/Tokens";
 import { useReducedMotion } from "@/lib/useReducedMotion";
 import { PAINTS } from "./Palette";
-import { BOX, PAINTING } from "./Pour";
+import { hangsBeside, PAINTING, setIn } from "./Pour";
 
 // The home page's painting, still (see Living for it wet, which is what is
 // shown where it can be): poured as the page opens, stroke by stroke, and
@@ -17,10 +17,11 @@ import { BOX, PAINTING } from "./Pour";
 // the painting is shown
 const FINEST = 0.45;
 
-// Where the painting hangs: above the words on phones; beside them, down the
-// right of the window, on anything wider
+// Where the painting hangs: above the words, across the window, on phones and
+// on tablets held upright; beside them, down the right of the window, where
+// there is room for both side by side (the `wide` variant, see globals.css)
 export const WALL =
-  "painting pointer-events-none relative h-[44svh] shrink-0 sm:fixed sm:inset-y-0 sm:right-0 sm:h-auto sm:w-[58%]";
+  "painting pointer-events-none relative h-[46svh] shrink-0 sm:h-[50svh] wide:fixed wide:inset-y-0 wide:right-0 wide:h-auto wide:w-[58%]";
 
 export default function Painting() {
   const wall = useRef<HTMLDivElement>(null);
@@ -64,23 +65,16 @@ export default function Painting() {
       return pouring;
     };
 
-    // The painting keeps its proportions: as large as fits its part of the
-    // window, against the right edge, half way up
+    // The painting keeps its proportions, set in its part of the window (see
+    // setIn)
     const fit = () => {
       const { clientWidth: width, clientHeight: height } = room;
       if (!width || !height) return;
       const pixels = Math.min(2, Math.max(1, window.devicePixelRatio));
-      const scale = Math.min(width / BOX.width, height / BOX.height);
+      const { scale, left, top } = setIn(width, height, hangsBeside(room));
       element.width = Math.round(width * pixels);
       element.height = Math.round(height * pixels);
-      context.setTransform(
-        pixels * scale,
-        0,
-        0,
-        pixels * scale,
-        pixels * (width - BOX.width * scale),
-        (pixels * (height - BOX.height * scale)) / 2,
-      );
+      context.setTransform(pixels * scale, 0, 0, pixels * scale, pixels * left, pixels * top);
       // (Not scaled with the rest: in the canvas's own pixels)
       context.shadowBlur = 1.2 * pixels;
       finest = FINEST / scale;
