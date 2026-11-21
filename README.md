@@ -1,42 +1,34 @@
 # rosinaldo.com
 
-My personal site: a short, quiet home page (who I am and how to reach me) and the projects, one at a time: a minimal
-menu of them on the left, the open one on the right, its live 3D scene running in a frame.
-
-Built with Next.js, React Three Fiber and Three.js, with hand-written GLSL shaders for every scene.
+My personal site: a short home page beside a painting in poured paint, and a Lab of small interface experiments, each
+playing live on its page.
 
 ## Highlights
 
-- **A live garden.** Seventeen flowers in three rows bloom, close and bloom again in new colours, with hand-written
-  shaders for the petals, stems that taper and curve, leaves cut from a photo of a real one (with its veins as relief),
-  drifting pollen and fireflies flashing in their own rhythms. It slows down for visitors who prefer reduced motion.
-- **A light, text-first home.** A single narrow column, a neutral gray scale that follows the system's light or dark
-  theme, links whose underline only shows on hover, and a short cascade as the page comes in. Everything sits on a
-  12-column layout grid (a CSS subgrid), its left edge always on a grid line: the projects menu takes the first three
-  columns and the open project the rest. A project's frame stays dark whatever the theme.
-- **One scene at a time.** Next keeps recently visited pages mounted but hidden; a hidden project drops its canvas,
-  so only the scene on show renders and holds a WebGL context.
-- **Accessible by default.** Scenes slow down for visitors who prefer reduced motion, and the projects menu works from
-  the keyboard.
-- **Works without WebGL.** Where WebGL is missing or a canvas fails, an error boundary takes over: every page keeps its
-  text, without the scene.
+- **A painting that keeps pouring.** The home page's painting, after Pollock's pourings, is poured wet on the GPU with
+  three.js: a hand keeps pouring, the paint runs, dries and sinks away, lit as enamel. A still version, poured once in
+  a 2D canvas, takes its place with reduced motion or where WebGL fails.
+- **The Lab.** Pages of variations on one interaction (hold to confirm, loading skeletons), each a live demo. The
+  index plays them on its cards; the pages have a table of contents and links to each section.
+- **One layout grid.** Every page sits on a 12-column grid (4 on phones), drawn faintly behind it, with content on its
+  lines through CSS subgrid.
+- **Accessible by default.** Motion respects reduced-motion settings, every control works from the keyboard with one
+  focus ring, and the demos announce their state to screen readers.
 
 ## Stack
 
-[Next.js 16](https://nextjs.org) (App Router, Cache Components) · React 19 · TypeScript ·
-[React Three Fiber](https://r3f.docs.pmnd.rs) · [Three.js](https://threejs.org) ·
-Tailwind CSS 4 · ESLint · Prettier
+[Next.js 16](https://nextjs.org) (App Router, Cache Components) · React 19 · TypeScript · [Three.js](https://threejs.org)
+· [React Three Fiber](https://r3f.docs.pmnd.rs) · Tailwind CSS 4 · ESLint · Prettier
 
 ## Project structure
 
 ```
 src/
-├── app/                  Routes: the home page and the projects
-│   └── projects/         The projects menu (layout), one page per project, and the project list
-├── components/
-│   └── …                 Projects menu, project page layout, the layout grid
-├── scenes/               The scene registry, its canvas, and one folder per scene
-└── lib/                  Small hooks and helpers
+├── app/            Routes: home, /lab and /lab/[slug] (Labs.ts lists the labs), metadata
+├── art/            The home page's painting: still (Painting, Pour), wet (Living, Wet, Hand, Shaders)
+├── components/     Layout grid, top bar, table of contents, lab page and cards
+├── experiments/    The Lab's demos (hold/, skeleton/) and their registry (Demos.ts)
+└── lib/            Small hooks and helpers
 ```
 
 ## Getting started
