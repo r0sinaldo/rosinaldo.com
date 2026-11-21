@@ -9,12 +9,17 @@ export default function NotFound() {
   return (
     <Column guides>
       <header className="mb-8 animate-rise" style={riseDelay(0)}>
-        <h1 className="leading-snug font-medium">Page not found</h1>
-        <p className="leading-snug text-muted">This page doesn&apos;t exist, or it has moved.</p>
+        <h1 className="page-title">Page not found</h1>
+        <p className="mt-2 leading-snug text-muted">This page doesn&apos;t exist, or it has moved.</p>
       </header>
 
       <nav aria-label="Links" className="animate-rise" style={riseDelay(1)}>
-        <LinkList links={[{ label: "Home", href: "/" }]} />
+        <LinkList
+          links={[
+            { label: "Home", href: "/" },
+            { label: "Lab", href: "/lab" },
+          ]}
+        />
       </nav>
     </Column>
   );

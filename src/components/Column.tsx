@@ -18,23 +18,28 @@ const LINE = "border-[color-mix(in_srgb,var(--line)_25%,transparent)]";
 const PLACEMENT =
   "grid-content grid grid-cols-subgrid col-span-4 sm:col-start-2 sm:col-end-12 lg:col-start-3 lg:col-end-11 xl:col-start-4 xl:col-end-13";
 
+// The grid itself, drawn faintly behind the page
+export function Guides() {
+  return (
+    <div aria-hidden className={`pointer-events-none fixed inset-0 ${GRID}`}>
+      {/* One line per column's left edge, plus a closing right edge: after
+          the 4th column on phones (the rest are hidden), after the 12th above */}
+      {Array.from({ length: GRID_COLUMNS }, (_, i) => (
+        <div
+          key={i}
+          className={`border-l ${LINE} ${i === GRID_COLUMNS - 1 || i === PHONE_COLUMNS - 1 ? "border-r" : ""} ${
+            i >= PHONE_COLUMNS ? "max-sm:hidden" : ""
+          } ${i === PHONE_COLUMNS - 1 ? "sm:border-r-0" : ""}`}
+        />
+      ))}
+    </div>
+  );
+}
+
 export default function Column({ children, guides = false }: ColumnProps) {
   return (
     <>
-      {guides && (
-        <div aria-hidden className={`pointer-events-none fixed inset-0 ${GRID}`}>
-          {/* One line per column's left edge, plus a closing right edge: after
-              the 4th column on phones (the rest are hidden), after the 12th above */}
-          {Array.from({ length: GRID_COLUMNS }, (_, i) => (
-            <div
-              key={i}
-              className={`border-l ${LINE} ${i === GRID_COLUMNS - 1 || i === PHONE_COLUMNS - 1 ? "border-r" : ""} ${
-                i >= PHONE_COLUMNS ? "max-sm:hidden" : ""
-              } ${i === PHONE_COLUMNS - 1 ? "sm:border-r-0" : ""}`}
-            />
-          ))}
-        </div>
-      )}
+      {guides && <Guides />}
       {/* Fills the screen's height with its content in the middle of it */}
       <main className={`relative w-full flex-1 content-center py-12 sm:py-24 ${GRID}`}>
         <div className={PLACEMENT}>{children}</div>

@@ -17,13 +17,13 @@ export default function OpenGraphImage() {
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: "#fcfcfc",
+        background: "#0a0a0b",
       }}
     >
       {/* About a quarter of the height: previews are often cropped to a square
           around the middle, and a larger mark crowds it */}
       <svg width={132} height={152} viewBox={MARK.viewBox}>
-        <path d={MARK.path} fill="#202020" />
+        <path d={MARK.path} fill="#ededef" />
       </svg>
     </div>,
     size,

@@ -150,7 +150,7 @@ export default function TopNav({ back, current, sections = NO_SECTIONS }: TopNav
         {listed && (
           <ul
             id={listId}
-            className="absolute top-full left-0 mt-3 max-h-[60vh] w-56 overflow-y-auto rounded-[4px] bg-background p-1 shadow-[0_0_0_1px_color-mix(in_srgb,var(--foreground)_8%,transparent),0_8px_24px_-8px_color-mix(in_srgb,var(--foreground)_18%,transparent)] motion-safe:animate-label"
+            className="absolute top-full left-0 mt-3 max-h-[60vh] w-56 overflow-y-auto rounded-[4px] border border-[color-mix(in_srgb,var(--foreground)_8%,transparent)] bg-background p-1 shadow-[0_8px_24px_-8px_color-mix(in_srgb,var(--foreground)_18%,transparent)] motion-safe:animate-label"
           >
             {sections.map(({ id, title }) => (
               <li key={id}>

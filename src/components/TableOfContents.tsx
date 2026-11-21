@@ -12,7 +12,7 @@ export default function TableOfContents({ sections }: { sections: Section[] }) {
   return (
     <nav
       aria-label="On this page"
-      className="hidden animate-rise lg:sticky lg:top-12 lg:col-start-10 lg:col-end-13 lg:block lg:self-start lg:pl-12"
+      className="hidden animate-rise lg:sticky lg:top-0 lg:col-start-10 lg:col-end-13 lg:block lg:self-start lg:pt-3 lg:pl-12"
       style={riseDelay(1)}
     >
       <h2 className="text-faint">On this page</h2>

@@ -10,8 +10,10 @@ export default function DemoFrame({ children }: { children: ReactNode }) {
   const [visit, setVisit] = useState(0);
   useEffect(() => () => setVisit((n) => n + 1), []);
 
+  // Edged with a real border, not a ring of shadow outside the box: Safari
+  // leaves parts of such a ring unpainted on a clipped, rounded box
   return (
-    <div className="grid h-80 place-items-center overflow-hidden rounded-[4px] bg-background p-6 shadow-[0_0_0_1px_color-mix(in_srgb,var(--foreground)_7%,transparent),0_1px_1px_color-mix(in_srgb,var(--foreground)_3%,transparent)]">
+    <div className="grid h-80 place-items-center overflow-hidden rounded-[4px] border border-[color-mix(in_srgb,var(--foreground)_7%,transparent)] bg-background p-6 shadow-[0_1px_1px_color-mix(in_srgb,var(--foreground)_3%,transparent)]">
       <Fragment key={visit}>{children}</Fragment>
     </div>
   );
