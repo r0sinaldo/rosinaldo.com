@@ -49,11 +49,14 @@ export type Stroke = { touches: Float32Array; start: number; duration: number; f
 
 type Point = { x: number; y: number; width: number };
 
-const TAU = Math.PI * 2;
+export const TAU = Math.PI * 2;
 // When the first paint lands: the page's words come in first
 const BEGIN = 0.9;
 // The smallest turn from one heading to another
-const turn = (from: number, to: number) => ((to - from + Math.PI * 3) % TAU) - Math.PI;
+export const turn = (from: number, to: number) => ((to - from + Math.PI * 3) % TAU) - Math.PI;
+// Where the hand's loops gather, to the right (the still painting's and the
+// wet one's alike)
+export const KNOT = { x: 700, y: 440, rx: 190, ry: 230 };
 
 function paint(): Stroke[] {
   const random = seeded(1951);
@@ -196,7 +199,6 @@ function paint(): Stroke[] {
 
   // The knot, to the right: heavy loops over one another, then two wider,
   // lighter ones that leave it for the top and the right edge
-  const KNOT = { x: 700, y: 440, rx: 190, ry: 230 };
   const heavy: number[][] = [];
   for (let i = 0; i < 6; i++) heavy.push(gesture(i * 0.5, KNOT, between(2.6, 5.2), between(700, 1500)));
   gesture(3.3, { x: 720, y: 400, rx: 300, ry: 420 }, 1.7, 1700);
@@ -236,8 +238,6 @@ function paint(): Stroke[] {
     run(at, from[touch], from[touch + 1], between(1, 1.7), between(140, 420), 48, 0);
   }
 
-  // In the order it is poured, so that drawn all at once (the window resized,
-  // or motion reduced) the same paint lies over the same paint
   // Two heavy lines, poured from a full can, ragged and swelling, and a heavy
   // run: made last, so all the rest is as it was
   for (const [start, x, y] of [
@@ -271,6 +271,8 @@ function paint(): Stroke[] {
   }
   run(2.8, 455, between(20, 120), 5.5, 620, 100, 10);
 
+  // In the order it is poured, so that drawn all at once (the window resized,
+  // or motion reduced) the same paint lies over the same paint
   return strokes.sort((a, b) => a.start - b.start);
 }
 

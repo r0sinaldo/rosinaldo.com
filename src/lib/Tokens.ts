@@ -1,5 +1,5 @@
-// The site's colours (see globals.css), as the page has them now, light or
-// dark, for drawing on canvases
+// The site's colours (see globals.css), as the page has them, for drawing on
+// canvases
 export function readTokens() {
   const style = getComputedStyle(document.documentElement);
   const token = (name: string) => style.getPropertyValue(name).trim();

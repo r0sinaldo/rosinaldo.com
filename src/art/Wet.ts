@@ -20,16 +20,14 @@ import {
   WebGLRenderer,
   WebGLRenderTarget,
 } from "three";
+import { rgbChannels } from "@/lib/Tokens";
 import { createHand } from "./Hand";
 import { PAINTS, WHITE } from "./Palette";
 import { hangsBeside, setIn } from "./Pour";
 import { COPY, FLOW, LOOK, QUAD, TINT_FRAGMENT, TOUCH_FRAGMENT, TOUCH_VERTEX } from "./Shaders";
 
 // The paints as the shaders take them: 0 to 1 a channel, as they are shown
-const TINTS = PAINTS.map(({ colour }) => {
-  const value = parseInt(colour.slice(1), 16);
-  return [(value >> 16) / 255, ((value >> 8) & 255) / 255, (value & 255) / 255];
-});
+const TINTS = PAINTS.map(({ colour }) => rgbChannels(colour).map((channel) => channel / 255));
 
 // The home page's painting, wet. The paint is kept as a picture of how thick
 // it lies and how wet it is, a pixel of it for each pixel of the screen; a

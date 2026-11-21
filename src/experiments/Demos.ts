@@ -22,7 +22,7 @@ import OutOfOrder from "./skeleton/OutOfOrder";
 import Patience from "./skeleton/Patience";
 import Pencil from "./skeleton/Pencil";
 
-// Every lab demo, by the name experiments refer to it with (see Lab.ts)
+// Every lab demo, by the name experiments refer to it with (see app/lab/Labs.ts)
 export const DEMOS = {
   "hold-classic": Classic,
   "hold-into-the-bin": IntoTheBin,

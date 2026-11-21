@@ -1,4 +1,5 @@
 import { pickPaint, WHITE } from "./Palette";
+import { KNOT, TAU, turn } from "./Pour";
 
 // The hand that pours the wet painting (see Wet), for as long as the page is
 // open. It does what the still painting's was made of (see Pour), but in its
@@ -18,15 +19,12 @@ import { pickPaint, WHITE } from "./Palette";
 // Each line, run and flick is one paint, picked as it is begun
 export type Emit = (x: number, y: number, radius: number, thick: number, paint: number, drop?: boolean) => void;
 
-const TAU = Math.PI * 2;
-const KNOT = { x: 700, y: 440, rx: 190, ry: 230 };
 const AROUND = { x: 690, y: 450, rx: 310, ry: 400 };
 // How far the hand moves in a second at its fastest, and a thrown line's speed
 const PACE = 420;
 const THROWN = 1500;
 
 const between = (min: number, max: number) => min + Math.random() * (max - min);
-const turn = (from: number, to: number) => ((to - from + Math.PI * 3) % TAU) - Math.PI;
 
 type Line = {
   x: number;
